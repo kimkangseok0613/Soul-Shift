@@ -6,22 +6,17 @@ public class PlayerCombat : MonoBehaviour
     [Header("Attack")]
     [SerializeField] private float attackCooldown = 0.2f;
 
-    [Header("Attack Point")]
-    [SerializeField] private Transform attackPoint;
+    [Header("Attack Hitbox")]
     [SerializeField] private GameObject attackHitbox;
 
     private Animator animator;
-
     private bool canAttack = true;
 
     private void Awake()
     {
         animator = GetComponent<Animator>();
 
-        if (attackHitbox != null)
-        {
-            attackHitbox.SetActive(false);
-        }
+        DisableAttackHitbox();
     }
 
     private void Update()
@@ -31,11 +26,11 @@ public class PlayerCombat : MonoBehaviour
 
         if (Keyboard.current.jKey.wasPressedThisFrame)
         {
-            Attack();
+            TryAttack();
         }
     }
 
-    private void Attack()
+    private void TryAttack()
     {
         if (!canAttack)
             return;
@@ -45,7 +40,10 @@ public class PlayerCombat : MonoBehaviour
         animator.SetBool("IsAttacking", true);
         animator.SetTrigger("Attack");
 
-        Invoke(nameof(ResetAttackCooldown), attackCooldown);
+        Invoke(
+            nameof(ResetAttackCooldown),
+            attackCooldown
+        );
     }
 
     private void ResetAttackCooldown()
@@ -73,13 +71,19 @@ public class PlayerCombat : MonoBehaviour
     {
         DisableAttackHitbox();
 
-        animator.SetBool("IsAttacking", false);
+        animator.SetBool(
+            "IsAttacking",
+            false
+        );
     }
 
     public void CancelAttack()
     {
         DisableAttackHitbox();
 
-        animator.SetBool("IsAttacking", false);
+        animator.SetBool(
+            "IsAttacking",
+            false
+        );
     }
 }

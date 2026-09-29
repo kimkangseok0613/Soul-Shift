@@ -30,42 +30,30 @@ public class EnemyController : MonoBehaviour
     private Rigidbody2D rb;
     private Animator animator;
     private EnemyHealth enemyHealth;
-    private Collider2D enemyCollider;
 
-    private EnemyState currentState = EnemyState.Idle;
+    private EnemyState currentState =
+        EnemyState.Idle;
 
     private float attackCooldownTimer;
 
-    // 공격 애니메이션 재생 중인지
     private bool isAttackPlaying;
-
-    // 피격 애니메이션 재생 중인지
     private bool isHitPlaying;
+    private bool isPositionXLocked;
 
     private Vector3 baseScale;
 
-    // 원래 Rigidbody Constraints 저장
     private RigidbodyConstraints2D originalConstraints;
-
-    // 공격 중 X축 고정 여부
-    private bool isPositionXLocked;
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         enemyHealth = GetComponent<EnemyHealth>();
-        enemyCollider = GetComponent<Collider2D>();
 
         baseScale = transform.localScale;
-
-        // 현재 Rigidbody Constraints 저장
         originalConstraints = rb.constraints;
 
-        if (attackHitbox != null)
-        {
-            attackHitbox.SetActive(false);
-        }
+        DisableAttackHitbox();
     }
 
     private void Start()
@@ -75,29 +63,19 @@ public class EnemyController : MonoBehaviour
 
     private void Update()
     {
-        // Player가 없으면 다시 찾음
         if (target == null)
         {
             FindPlayer();
         }
 
-        // 사망 확인
-        if (enemyHealth != null && enemyHealth.IsDead())
+        if (IsDead())
         {
-            ChangeState(EnemyState.Dead);
-
-            isAttackPlaying = false;
-            isHitPlaying = false;
-
-            DisableAttackHitbox();
-            UnlockPositionX();
-
+            SetDeadState();
             return;
         }
 
         UpdateAttackCooldown();
 
-        // 피격 중에는 상태 변경하지 않음
         if (!isHitPlaying)
         {
             UpdateState();
@@ -108,7 +86,7 @@ public class EnemyController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (enemyHealth != null && enemyHealth.IsDead())
+        if (IsDead())
         {
             StopMovement();
             UnlockPositionX();
@@ -128,9 +106,7 @@ public class EnemyController : MonoBehaviour
                 break;
 
             case EnemyState.Attack:
-                // 공격 중에는 X축 고정
                 LockPositionX();
-
                 StopMovement();
                 break;
 
@@ -146,70 +122,29 @@ public class EnemyController : MonoBehaviour
         GameObject player =
             GameObject.FindGameObjectWithTag("Player");
 
-        if (player != null)
-        {
-            target = player.transform;
-        }
+        target =
+            player != null
+                ? player.transform
+                : null;
     }
 
     private void UpdateState()
     {
-        if (target == null)
+        if (!TryGetTargetDistance(
+                out float horizontalDistance,
+                out bool verticalInRange))
         {
             ChangeState(EnemyState.Idle);
             return;
         }
 
-        float horizontalDistance =
-            Mathf.Abs(
-                target.position.x -
-                transform.position.x
-            );
-
-        float verticalDistance =
-            Mathf.Abs(
-                target.position.y -
-                transform.position.y
-            );
-
-        bool verticalInRange =
-            verticalDistance <= maxVerticalDifference;
-
-        // 현재 공격 상태
-        if (currentState == EnemyState.Attack)
+        // 공격 애니메이션은 끝까지 유지
+        if (currentState == EnemyState.Attack &&
+            isAttackPlaying)
         {
-            // 공격 애니메이션이 끝날 때까지 유지
-            if (isAttackPlaying)
-                return;
-
-            // 공격 범위 안
-            if (verticalInRange &&
-                horizontalDistance <= attackRange)
-            {
-                ChangeState(EnemyState.Attack);
-
-                if (attackCooldownTimer <= 0f)
-                {
-                    Attack();
-                }
-
-                return;
-            }
-
-            // 공격 범위 밖 + 감지 범위 안
-            if (verticalInRange &&
-                horizontalDistance <= detectionRange)
-            {
-                ChangeState(EnemyState.Chase);
-                return;
-            }
-
-            // 감지 범위 밖
-            ChangeState(EnemyState.Idle);
             return;
         }
 
-        // 높이 차이가 너무 크면 추적하지 않음
         if (!verticalInRange)
         {
             ChangeState(EnemyState.Idle);
@@ -221,7 +156,8 @@ public class EnemyController : MonoBehaviour
         {
             ChangeState(EnemyState.Attack);
 
-            if (attackCooldownTimer <= 0f)
+            if (!isAttackPlaying &&
+                attackCooldownTimer <= 0f)
             {
                 Attack();
             }
@@ -238,6 +174,35 @@ public class EnemyController : MonoBehaviour
 
         // 감지 범위 밖
         ChangeState(EnemyState.Idle);
+    }
+
+    private bool TryGetTargetDistance(
+        out float horizontalDistance,
+        out bool verticalInRange
+    )
+    {
+        horizontalDistance = 0f;
+        verticalInRange = false;
+
+        if (target == null)
+            return false;
+
+        horizontalDistance =
+            Mathf.Abs(
+                target.position.x -
+                transform.position.x
+            );
+
+        float verticalDistance =
+            Mathf.Abs(
+                target.position.y -
+                transform.position.y
+            );
+
+        verticalInRange =
+            verticalDistance <= maxVerticalDifference;
+
+        return true;
     }
 
     private void ChaseTarget()
@@ -272,22 +237,17 @@ public class EnemyController : MonoBehaviour
 
     private void Attack()
     {
-        if (target == null)
+        if (target == null ||
+            isAttackPlaying ||
+            isHitPlaying)
+        {
             return;
-
-        if (isAttackPlaying)
-            return;
-
-        if (isHitPlaying)
-            return;
+        }
 
         isAttackPlaying = true;
-
         attackCooldownTimer = attackCooldown;
 
-        // 공격 시작하면서 X축 고정
         LockPositionX();
-
         StopMovement();
 
         float direction =
@@ -296,7 +256,9 @@ public class EnemyController : MonoBehaviour
                 transform.position.x
             );
 
-        if (direction != 0f)
+        if (!Mathf.Approximately(
+                direction,
+                0f))
         {
             Flip(direction);
         }
@@ -323,28 +285,24 @@ public class EnemyController : MonoBehaviour
         if (!isPositionXLocked)
             return;
 
-        rb.constraints = originalConstraints;
+        rb.constraints =
+            originalConstraints;
 
         isPositionXLocked = false;
     }
 
-    // Attack Animation Event
     public void EnableAttackHitbox()
     {
-        if (enemyHealth != null &&
-            enemyHealth.IsDead())
+        if (IsDead() ||
+            isHitPlaying ||
+            attackHitbox == null)
+        {
             return;
-
-        if (isHitPlaying)
-            return;
-
-        if (attackHitbox == null)
-            return;
+        }
 
         attackHitbox.SetActive(true);
     }
 
-    // Attack Animation Event
     public void DisableAttackHitbox()
     {
         if (attackHitbox == null)
@@ -353,79 +311,20 @@ public class EnemyController : MonoBehaviour
         attackHitbox.SetActive(false);
     }
 
-    // Attack 마지막 Animation Event
     public void EndAttack()
     {
         DisableAttackHitbox();
 
         isAttackPlaying = false;
 
-        // 공격 종료 후 X축 고정 해제
         UnlockPositionX();
 
-        if (enemyHealth != null &&
-            enemyHealth.IsDead())
-        {
-            ChangeState(EnemyState.Dead);
-            return;
-        }
-
-        if (target == null)
-        {
-            FindPlayer();
-
-            if (target == null)
-            {
-                ChangeState(EnemyState.Idle);
-                return;
-            }
-        }
-
-        float horizontalDistance =
-            Mathf.Abs(
-                target.position.x -
-                transform.position.x
-            );
-
-        float verticalDistance =
-            Mathf.Abs(
-                target.position.y -
-                transform.position.y
-            );
-
-        bool verticalInRange =
-            verticalDistance <= maxVerticalDifference;
-
-        // 공격 범위 안
-        if (verticalInRange &&
-            horizontalDistance <= attackRange)
-        {
-            ChangeState(EnemyState.Attack);
-
-            if (attackCooldownTimer <= 0f)
-            {
-                Attack();
-            }
-
-            return;
-        }
-
-        // 공격 범위 밖 + 감지 범위 안
-        if (verticalInRange &&
-            horizontalDistance <= detectionRange)
-        {
-            ChangeState(EnemyState.Chase);
-            return;
-        }
-
-        ChangeState(EnemyState.Idle);
+        ReevaluateTargetState();
     }
 
-    // 피격됐을 때 EnemyHealth에서 호출
     public void OnHit()
     {
-        if (enemyHealth != null &&
-            enemyHealth.IsDead())
+        if (IsDead())
             return;
 
         DisableAttackHitbox();
@@ -441,83 +340,63 @@ public class EnemyController : MonoBehaviour
         animator.SetTrigger("Hit");
     }
 
-    // Hit 마지막 Animation Event
     public void EndHit()
     {
         isHitPlaying = false;
 
-        if (enemyHealth != null &&
-            enemyHealth.IsDead())
-        {
-            ChangeState(EnemyState.Dead);
-            return;
-        }
+        ReevaluateTargetState();
+    }
 
+    private void ReevaluateTargetState()
+    {
         if (target == null)
         {
             FindPlayer();
-
-            if (target == null)
-            {
-                ChangeState(EnemyState.Idle);
-                return;
-            }
         }
 
-        float horizontalDistance =
-            Mathf.Abs(
-                target.position.x -
-                transform.position.x
-            );
-
-        float verticalDistance =
-            Mathf.Abs(
-                target.position.y -
-                transform.position.y
-            );
-
-        bool verticalInRange =
-            verticalDistance <= maxVerticalDifference;
-
-        // 공격 범위 안
-        if (verticalInRange &&
-            horizontalDistance <= attackRange)
+        if (IsDead())
         {
-            ChangeState(EnemyState.Attack);
-
-            if (attackCooldownTimer <= 0f)
-            {
-                Attack();
-            }
-
+            SetDeadState();
             return;
         }
 
-        // 공격 범위 밖 + 감지 범위 안
-        if (verticalInRange &&
-            horizontalDistance <= detectionRange)
-        {
-            ChangeState(EnemyState.Chase);
-            return;
-        }
-
-        ChangeState(EnemyState.Idle);
+        UpdateState();
     }
 
     private void UpdateAttackCooldown()
     {
-        if (attackCooldownTimer > 0f)
-        {
-            attackCooldownTimer -= Time.deltaTime;
+        if (attackCooldownTimer <= 0f)
+            return;
 
-            if (attackCooldownTimer < 0f)
-            {
-                attackCooldownTimer = 0f;
-            }
+        attackCooldownTimer -=
+            Time.deltaTime;
+
+        if (attackCooldownTimer < 0f)
+        {
+            attackCooldownTimer = 0f;
         }
     }
 
-    private void ChangeState(EnemyState newState)
+    private void SetDeadState()
+    {
+        ChangeState(EnemyState.Dead);
+
+        isAttackPlaying = false;
+        isHitPlaying = false;
+
+        DisableAttackHitbox();
+        UnlockPositionX();
+    }
+
+    private bool IsDead()
+    {
+        return enemyHealth != null &&
+               enemyHealth.IsDead();
+    }
+
+    private void ChangeState(
+        EnemyState newState
+    )
     {
         if (currentState == newState)
             return;
@@ -537,20 +416,23 @@ public class EnemyController : MonoBehaviour
     {
         if (direction > 0f)
         {
-            transform.localScale = new Vector3(
-                Mathf.Abs(baseScale.x),
-                baseScale.y,
-                baseScale.z
-            );
+            SetFacing(1f);
         }
         else if (direction < 0f)
         {
-            transform.localScale = new Vector3(
-                -Mathf.Abs(baseScale.x),
-                baseScale.y,
-                baseScale.z
-            );
+            SetFacing(-1f);
         }
+    }
+
+    private void SetFacing(float direction)
+    {
+        float sign = Mathf.Sign(direction);
+
+        transform.localScale = new Vector3(
+            Mathf.Abs(baseScale.x) * sign,
+            baseScale.y,
+            baseScale.z
+        );
     }
 
     private void UpdateAnimation()

@@ -13,57 +13,75 @@ public class PlayerHealthUI : MonoBehaviour
     private readonly List<Image> hearts = new();
 
     private int lastMaxHeartCount = -1;
+    private int lastRemainingHitCount = -1;
 
     private void Start()
     {
-        FindPlayer();
-
-        if (playerHealth != null)
-        {
-            RefreshHeartCount();
-            UpdateHearts();
-        }
+        TryFindPlayer();
+        RefreshUI(true);
     }
 
     private void Update()
     {
-        // 플레이어가 없으면 새 플레이어 찾기
         if (playerHealth == null)
         {
-            FindPlayer();
-
-            if (playerHealth == null)
-                return;
-
-            RefreshHeartCount();
-            UpdateHearts();
-
+            TryFindPlayer();
+            RefreshUI(true);
             return;
         }
 
-        int currentMaxHeartCount =
-            playerHealth.GetMaxHitCount();
-
-        // 최대 하트 수 변경
-        if (currentMaxHeartCount != lastMaxHeartCount)
-        {
-            RefreshHeartCount();
-        }
-
-        UpdateHearts();
+        RefreshUI(false);
     }
 
-    private void FindPlayer()
+    private void TryFindPlayer()
     {
         playerHealth =
             FindFirstObjectByType<PlayerHealth>();
+
+        if (playerHealth != null)
+        {
+            lastMaxHeartCount = -1;
+            lastRemainingHitCount = -1;
+        }
     }
 
-    private void RefreshHeartCount()
+    private void RefreshUI(bool force)
     {
         if (playerHealth == null)
             return;
 
+        int maxHeartCount =
+            playerHealth.GetMaxHitCount();
+
+        int remainingHitCount =
+            playerHealth.GetRemainingHits();
+
+        bool maxChanged =
+            maxHeartCount != lastMaxHeartCount;
+
+        bool healthChanged =
+            remainingHitCount != lastRemainingHitCount;
+
+        if (force || maxChanged)
+        {
+            RefreshHeartCount(maxHeartCount);
+        }
+
+        if (force ||
+            maxChanged ||
+            healthChanged)
+        {
+            UpdateHearts(remainingHitCount);
+        }
+
+        lastMaxHeartCount = maxHeartCount;
+        lastRemainingHitCount = remainingHitCount;
+    }
+
+    private void RefreshHeartCount(
+        int maxHeartCount
+    )
+    {
         if (heartPrefab == null)
         {
             Debug.LogWarning(
@@ -73,22 +91,15 @@ public class PlayerHealthUI : MonoBehaviour
             return;
         }
 
-        int maxHeartCount =
-            playerHealth.GetMaxHitCount();
-
-        // 하트 추가
         while (hearts.Count < maxHeartCount)
         {
             CreateHeart();
         }
 
-        // 하트 제거
         while (hearts.Count > maxHeartCount)
         {
             RemoveHeart();
         }
-
-        lastMaxHeartCount = maxHeartCount;
     }
 
     private void CreateHeart()
@@ -114,7 +125,8 @@ public class PlayerHealthUI : MonoBehaviour
 
         if (fullHeartSprite != null)
         {
-            heartImage.sprite = fullHeartSprite;
+            heartImage.sprite =
+                fullHeartSprite;
         }
 
         heartImage.gameObject.SetActive(true);
@@ -141,18 +153,14 @@ public class PlayerHealthUI : MonoBehaviour
         }
     }
 
-    private void UpdateHearts()
+    private void UpdateHearts(
+        int remainingHitCount
+    )
     {
-        if (playerHealth == null)
-            return;
-
-        int remainingHits =
-            playerHealth.GetRemainingHits();
-
         for (int i = 0; i < hearts.Count; i++)
         {
             hearts[i].gameObject.SetActive(
-                i < remainingHits
+                i < remainingHitCount
             );
         }
     }

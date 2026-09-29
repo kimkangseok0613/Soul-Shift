@@ -2,7 +2,11 @@ using UnityEngine;
 
 public class RespawnManager : MonoBehaviour
 {
-    public static RespawnManager Instance { get; private set; }
+    public static RespawnManager Instance
+    {
+        get;
+        private set;
+    }
 
     [Header("Player")]
     [SerializeField] private GameObject playerPrefab;
@@ -14,7 +18,8 @@ public class RespawnManager : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance != null && Instance != this)
+        if (Instance != null &&
+            Instance != this)
         {
             Destroy(gameObject);
             return;
@@ -28,25 +33,16 @@ public class RespawnManager : MonoBehaviour
         SpawnPlayer();
     }
 
+    public void RespawnPlayer()
+    {
+        DestroyCurrentPlayer();
+        SpawnPlayer();
+    }
+
     public void SpawnPlayer()
     {
-        if (playerPrefab == null)
-        {
-            Debug.LogWarning(
-                "Player Prefab이 연결되지 않았습니다."
-            );
-
+        if (!CanSpawn())
             return;
-        }
-
-        if (spawnPoint == null)
-        {
-            Debug.LogWarning(
-                "Spawn Point가 연결되지 않았습니다."
-            );
-
-            return;
-        }
 
         currentPlayer = Instantiate(
             playerPrefab,
@@ -57,14 +53,36 @@ public class RespawnManager : MonoBehaviour
         Debug.Log("Player Spawned");
     }
 
-    public void RespawnPlayer()
+    private bool CanSpawn()
     {
-        if (currentPlayer != null)
+        if (playerPrefab == null)
         {
-            Destroy(currentPlayer);
+            Debug.LogWarning(
+                "Player Prefab이 연결되지 않았습니다."
+            );
+
+            return false;
         }
 
-        SpawnPlayer();
+        if (spawnPoint == null)
+        {
+            Debug.LogWarning(
+                "Spawn Point가 연결되지 않았습니다."
+            );
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private void DestroyCurrentPlayer()
+    {
+        if (currentPlayer == null)
+            return;
+
+        Destroy(currentPlayer);
+        currentPlayer = null;
     }
 
     public GameObject GetCurrentPlayer()

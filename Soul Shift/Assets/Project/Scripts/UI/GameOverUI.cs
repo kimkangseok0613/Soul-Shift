@@ -9,16 +9,7 @@ public class GameOverUI : MonoBehaviour
 
     private void Awake()
     {
-        if (gameOverPanel != null)
-        {
-            gameOverPanel.SetActive(false);
-        }
-        else
-        {
-            Debug.LogWarning(
-                "GameOverPanel이 연결되지 않았습니다."
-            );
-        }
+        HideGameOver();
     }
 
     public void ShowGameOver()
@@ -28,11 +19,15 @@ public class GameOverUI : MonoBehaviour
 
         isGameOver = true;
 
-        Debug.Log("Show Game Over");
-
         if (gameOverPanel != null)
         {
             gameOverPanel.SetActive(true);
+        }
+        else
+        {
+            Debug.LogWarning(
+                "GameOverPanel이 연결되지 않았습니다."
+            );
         }
     }
 
@@ -47,16 +42,18 @@ public class GameOverUI : MonoBehaviour
             return;
         }
 
-        // 게임 오버 UI 닫기
+        RespawnManager.Instance.RespawnPlayer();
+
+        HideGameOver();
+    }
+
+    private void HideGameOver()
+    {
+        isGameOver = false;
+
         if (gameOverPanel != null)
         {
             gameOverPanel.SetActive(false);
         }
-
-        // 게임 오버 상태 해제
-        isGameOver = false;
-
-        // 플레이어 다시 생성
-        RespawnManager.Instance.RespawnPlayer();
     }
 }
