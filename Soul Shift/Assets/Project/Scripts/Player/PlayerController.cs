@@ -17,9 +17,17 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private Transform groundCheck;
     [SerializeField] private float groundCheckRadius = 0.05f;
 
+    [Header("Hit Stun")]
+    [SerializeField] private float defaultHitStunDuration = 0.15f;
+    [SerializeField] private float defaultKnockbackForce = 2.5f;
+
+    [Header("Screen Bounds")]
+    [SerializeField] private bool useScreenBounds = true;
+    [SerializeField] private float screenPadding = 0f;
+
     private Rigidbody2D rb;
-    private SpriteRenderer spriteRenderer;
     private Animator animator;
+    private Collider2D playerCollider;
 
     private float moveInput;
 
@@ -27,11 +35,17 @@ public class PlayerController : MonoBehaviour
     private float jumpBufferCounter;
     private float coyoteCounter;
 
+    private float hitStunTimer;
+
+    private Vector3 baseScale;
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        spriteRenderer = GetComponent<SpriteRenderer>();
         animator = GetComponent<Animator>();
+        playerCollider = GetComponent<Collider2D>();
+
+        baseScale = transform.localScale;
     }
 
     private void Update()
@@ -41,25 +55,38 @@ public class PlayerController : MonoBehaviour
         Flip();
         UpdateJumpTimers();
         UpdateAnimation();
+
+        UpdateHitStunTimer();
     }
 
     private void FixedUpdate()
     {
+        // 피격 경직 중에는 이동과 점프를 하지 않음
+        if (hitStunTimer > 0f)
+        {
+            ClampToScreen();
+            return;
+        }
+
         Move();
         Jump();
+
+        // 화면 밖으로 나가지 못하게 제한
+        ClampToScreen();
     }
 
-    // =========================
-    // 입력
-    // =========================
     private void GetInput()
     {
         if (Keyboard.current == null)
             return;
 
-        // --------------------------------
-        // 이동 입력
-        // --------------------------------
+        // 경직 중에는 이동 입력 무시
+        if (hitStunTimer > 0f)
+        {
+            moveInput = 0f;
+            return;
+        }
+
         bool leftPressed =
             Keyboard.current.aKey.isPressed ||
             Keyboard.current.leftArrowKey.isPressed;
@@ -68,7 +95,7 @@ public class PlayerController : MonoBehaviour
             Keyboard.current.dKey.isPressed ||
             Keyboard.current.rightArrowKey.isPressed;
 
-        // A + D 동시 입력 = 정지
+        // A + D 동시에 누르면 정지
         if (leftPressed && rightPressed)
         {
             moveInput = 0f;
@@ -86,29 +113,13 @@ public class PlayerController : MonoBehaviour
             moveInput = 0f;
         }
 
-        // --------------------------------
-        // 점프 입력
-        // Space를 누르고 있는 동안 입력 유지
-        // --------------------------------
+        // Space를 누르고 있으면 점프 버퍼에 저장
         if (Keyboard.current.spaceKey.isPressed)
         {
             jumpBufferCounter = jumpBufferTime;
         }
-
-        // --------------------------------
-        // 공격 입력
-        // 지상 / 점프 / 낙하 관계없이 공격 가능
-        // --------------------------------
-        if (Keyboard.current.jKey.wasPressedThisFrame)
-        {
-            animator.SetBool("IsAttacking", true);
-            animator.SetTrigger("Attack");
-        }
     }
 
-    // =========================
-    // 바닥 판정
-    // =========================
     private void CheckGround()
     {
         if (groundCheck == null)
@@ -126,11 +137,9 @@ public class PlayerController : MonoBehaviour
 
         foreach (Collider2D hit in hits)
         {
-            // 자기 자신은 제외
             if (hit.gameObject == gameObject)
                 continue;
 
-            // Ground 태그 확인
             if (hit.CompareTag("Ground"))
             {
                 isGrounded = true;
@@ -139,18 +148,20 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // =========================
-    // 점프 보조
-    // =========================
     private void UpdateJumpTimers()
     {
-        // 점프 버퍼
+        // 경직 중에는 점프 버퍼를 쌓지 않음
+        if (hitStunTimer > 0f)
+        {
+            jumpBufferCounter = 0f;
+            return;
+        }
+
         if (jumpBufferCounter > 0f)
         {
             jumpBufferCounter -= Time.deltaTime;
         }
 
-        // 코요테 타임
         if (isGrounded)
         {
             coyoteCounter = coyoteTime;
@@ -161,9 +172,25 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // =========================
-    // 이동
-    // =========================
+    private void UpdateHitStunTimer()
+    {
+        if (hitStunTimer <= 0f)
+            return;
+
+        hitStunTimer -= Time.deltaTime;
+
+        if (hitStunTimer <= 0f)
+        {
+            hitStunTimer = 0f;
+
+            // 경직이 끝나면 수평 속도 제거
+            rb.linearVelocity = new Vector2(
+                0f,
+                rb.linearVelocity.y
+            );
+        }
+    }
+
     private void Move()
     {
         rb.linearVelocity = new Vector2(
@@ -172,9 +199,6 @@ public class PlayerController : MonoBehaviour
         );
     }
 
-    // =========================
-    // 점프
-    // =========================
     private void Jump()
     {
         if (jumpBufferCounter > 0f && coyoteCounter > 0f)
@@ -189,53 +213,226 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // =========================
-    // 애니메이션
-    // =========================
-    private void UpdateAnimation()
+    // 피격 시 적을 바라보게 함
+    public void FaceTarget(float targetX)
     {
-        animator.SetBool("IsMoving", moveInput != 0f);
-        animator.SetBool("IsGrounded", isGrounded);
-        animator.SetFloat("VerticalVelocity", rb.linearVelocity.y);
+        if (targetX > transform.position.x)
+        {
+            // 오른쪽을 바라봄
+            transform.localScale = new Vector3(
+                Mathf.Abs(baseScale.x),
+                baseScale.y,
+                baseScale.z
+            );
+        }
+        else if (targetX < transform.position.x)
+        {
+            // 왼쪽을 바라봄
+            transform.localScale = new Vector3(
+                -Mathf.Abs(baseScale.x),
+                baseScale.y,
+                baseScale.z
+            );
+        }
     }
 
-    // =========================
-    // 방향 전환
-    // =========================
+    public void ApplyHitStun(
+        float duration,
+        float knockbackForce,
+        float direction
+    )
+    {
+        if (direction == 0f)
+        {
+            direction =
+                transform.localScale.x >= 0f
+                    ? -1f
+                    : 1f;
+        }
+
+        hitStunTimer = duration;
+
+        // 적 반대 방향으로 넉백
+        rb.linearVelocity = new Vector2(
+            direction * knockbackForce,
+            rb.linearVelocity.y
+        );
+    }
+
+    private void ClampToScreen()
+    {
+        if (!useScreenBounds)
+            return;
+
+        Camera mainCamera = Camera.main;
+
+        if (mainCamera == null)
+            return;
+
+        if (!mainCamera.orthographic)
+            return;
+
+        float cameraHeight =
+            mainCamera.orthographicSize * 2f;
+
+        float cameraWidth =
+            cameraHeight * mainCamera.aspect;
+
+        float leftScreen =
+            mainCamera.transform.position.x -
+            cameraWidth * 0.5f;
+
+        float rightScreen =
+            mainCamera.transform.position.x +
+            cameraWidth * 0.5f;
+
+        float colliderExtentX = 0f;
+
+        if (playerCollider != null)
+        {
+            colliderExtentX =
+                playerCollider.bounds.extents.x;
+        }
+
+        float minX =
+            leftScreen +
+            colliderExtentX +
+            screenPadding;
+
+        float maxX =
+            rightScreen -
+            colliderExtentX -
+            screenPadding;
+
+        Vector2 currentPosition = rb.position;
+
+        float clampedX =
+            Mathf.Clamp(
+                currentPosition.x,
+                minX,
+                maxX
+            );
+
+        if (!Mathf.Approximately(
+                currentPosition.x,
+                clampedX))
+        {
+            rb.position =
+                new Vector2(
+                    clampedX,
+                    currentPosition.y
+                );
+
+            // 화면 밖으로 밀려났을 때 수평 속도 제거
+            rb.linearVelocity =
+                new Vector2(
+                    0f,
+                    rb.linearVelocity.y
+                );
+        }
+    }
+
+    private void UpdateAnimation()
+    {
+        animator.SetBool(
+            "IsMoving",
+            moveInput != 0f && hitStunTimer <= 0f
+        );
+
+        animator.SetBool(
+            "IsGrounded",
+            isGrounded
+        );
+
+        animator.SetFloat(
+            "VerticalVelocity",
+            rb.linearVelocity.y
+        );
+    }
+
     private void Flip()
     {
+        // 경직 중에는 방향 전환하지 않음
+        if (hitStunTimer > 0f)
+            return;
+
         if (moveInput < 0f)
         {
-            spriteRenderer.flipX = true;
+            transform.localScale = new Vector3(
+                -Mathf.Abs(baseScale.x),
+                baseScale.y,
+                baseScale.z
+            );
         }
         else if (moveInput > 0f)
         {
-            spriteRenderer.flipX = false;
+            transform.localScale = new Vector3(
+                Mathf.Abs(baseScale.x),
+                baseScale.y,
+                baseScale.z
+            );
         }
     }
 
-    // =========================
-    // 공격 종료
-    // Animation Event에서 호출
-    // =========================
-    public void EndAttack()
-    {
-        animator.SetBool("IsAttacking", false);
-    }
-
-    // =========================
-    // GroundCheck 표시
-    // =========================
     private void OnDrawGizmosSelected()
     {
-        if (groundCheck == null)
+        if (groundCheck != null)
+        {
+            Gizmos.color = Color.red;
+
+            Gizmos.DrawWireSphere(
+                groundCheck.position,
+                groundCheckRadius
+            );
+        }
+
+        if (!useScreenBounds)
             return;
 
-        Gizmos.color = Color.red;
+        Camera mainCamera = Camera.main;
 
-        Gizmos.DrawWireSphere(
-            groundCheck.position,
-            groundCheckRadius
+        if (mainCamera == null)
+            return;
+
+        if (!mainCamera.orthographic)
+            return;
+
+        float cameraHeight =
+            mainCamera.orthographicSize * 2f;
+
+        float cameraWidth =
+            cameraHeight * mainCamera.aspect;
+
+        float leftScreen =
+            mainCamera.transform.position.x -
+            cameraWidth * 0.5f;
+
+        float rightScreen =
+            mainCamera.transform.position.x +
+            cameraWidth * 0.5f;
+
+        Gizmos.color = Color.cyan;
+
+        Gizmos.DrawLine(
+            new Vector3(
+                leftScreen,
+                mainCamera.transform.position.y - cameraHeight * 0.5f
+            ),
+            new Vector3(
+                leftScreen,
+                mainCamera.transform.position.y + cameraHeight * 0.5f
+            )
+        );
+
+        Gizmos.DrawLine(
+            new Vector3(
+                rightScreen,
+                mainCamera.transform.position.y - cameraHeight * 0.5f
+            ),
+            new Vector3(
+                rightScreen,
+                mainCamera.transform.position.y + cameraHeight * 0.5f
+            )
         );
     }
 }
