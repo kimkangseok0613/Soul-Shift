@@ -18,8 +18,13 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float groundCheckRadius = 0.05f;
 
     [Header("Hit Stun")]
-    [SerializeField] private float hitStunDuration = 0.15f;
-    [SerializeField] private float knockbackForce = 2.5f;
+    [SerializeField] private float defaultHitStunDuration = 0.15f;
+    [SerializeField] private float defaultKnockbackForce = 2.5f;
+
+    [Header("Dash")]
+    [SerializeField] private float dashSpeed = 12f;
+    [SerializeField] private float dashDuration = 0.15f;
+    [SerializeField] private float dashCooldown = 0.8f;
 
     [Header("Screen Bounds")]
     [SerializeField] private bool useScreenBounds = true;
@@ -30,12 +35,20 @@ public class PlayerController : MonoBehaviour
     private Collider2D playerCollider;
 
     private float moveInput;
+    private bool isGrounded;
     private float jumpBufferCounter;
     private float coyoteCounter;
     private float hitStunTimer;
 
-    private bool isGrounded;
+    private float dashTimer;
+    private float dashCooldownTimer;
+    private bool isDashing;
+    private Vector2 dashDirection;
+
     private Vector3 baseScale;
+
+    // 강화 전 기본 이동속도 저장
+    private float baseMoveSpeed;
 
     private void Awake()
     {
@@ -44,21 +57,55 @@ public class PlayerController : MonoBehaviour
         playerCollider = GetComponent<Collider2D>();
 
         baseScale = transform.localScale;
+
+        // 현재 Inspector에 설정된 이동속도를 기본값으로 저장
+        baseMoveSpeed = moveSpeed;
     }
 
     private void Update()
     {
-        UpdateHitStunTimer();
+        UpdateDashTimers();
+
+        if (TabMenuUI.IsMenuOpen)
+        {
+            moveInput = 0f;
+
+            if (isDashing)
+                EndDash();
+
+            UpdateAnimation();
+            return;
+        }
+
         GetInput();
         CheckGround();
-        UpdateJumpTimers();
         Flip();
+        UpdateJumpTimers();
         UpdateAnimation();
+        UpdateHitStunTimer();
     }
 
     private void FixedUpdate()
     {
-        if (IsHitStunned)
+        if (TabMenuUI.IsMenuOpen)
+        {
+            rb.linearVelocity =
+                new Vector2(
+                    0f,
+                    rb.linearVelocity.y
+                );
+
+            return;
+        }
+
+        if (isDashing)
+        {
+            DashMove();
+            ClampToScreen();
+            return;
+        }
+
+        if (hitStunTimer > 0f)
         {
             ClampToScreen();
             return;
@@ -74,10 +121,9 @@ public class PlayerController : MonoBehaviour
         if (Keyboard.current == null)
             return;
 
-        if (IsHitStunned)
+        if (hitStunTimer > 0f)
         {
             moveInput = 0f;
-            jumpBufferCounter = 0f;
             return;
         }
 
@@ -110,6 +156,12 @@ public class PlayerController : MonoBehaviour
         {
             jumpBufferCounter = jumpBufferTime;
         }
+
+        if (Keyboard.current.leftShiftKey.wasPressedThisFrame ||
+            Keyboard.current.rightShiftKey.wasPressedThisFrame)
+        {
+            TryDash();
+        }
     }
 
     private void CheckGround()
@@ -120,10 +172,11 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        Collider2D[] hits = Physics2D.OverlapCircleAll(
-            groundCheck.position,
-            groundCheckRadius
-        );
+        Collider2D[] hits =
+            Physics2D.OverlapCircleAll(
+                groundCheck.position,
+                groundCheckRadius
+            );
 
         isGrounded = false;
 
@@ -142,7 +195,7 @@ public class PlayerController : MonoBehaviour
 
     private void UpdateJumpTimers()
     {
-        if (IsHitStunned)
+        if (hitStunTimer > 0f)
         {
             jumpBufferCounter = 0f;
             return;
@@ -170,48 +223,199 @@ public class PlayerController : MonoBehaviour
 
         hitStunTimer -= Time.deltaTime;
 
-        if (hitStunTimer > 0f)
-            return;
+        if (hitStunTimer <= 0f)
+        {
+            hitStunTimer = 0f;
 
-        hitStunTimer = 0f;
+            rb.linearVelocity =
+                new Vector2(
+                    0f,
+                    rb.linearVelocity.y
+                );
+        }
+    }
 
-        rb.linearVelocity = new Vector2(
-            0f,
-            rb.linearVelocity.y
-        );
+    private void UpdateDashTimers()
+    {
+        if (dashCooldownTimer > 0f)
+        {
+            dashCooldownTimer -= Time.deltaTime;
+
+            if (dashCooldownTimer < 0f)
+            {
+                dashCooldownTimer = 0f;
+            }
+        }
+
+        // dashTimer는 여기서 감소하지 않는다.
+        // 실제 대쉬 시간은 FixedUpdate -> DashMove()에서 관리한다.
     }
 
     private void Move()
     {
-        rb.linearVelocity = new Vector2(
-            moveInput * moveSpeed,
-            rb.linearVelocity.y
-        );
+        rb.linearVelocity =
+            new Vector2(
+                moveInput * moveSpeed,
+                rb.linearVelocity.y
+            );
     }
 
     private void Jump()
     {
-        if (jumpBufferCounter <= 0f || coyoteCounter <= 0f)
+        if (jumpBufferCounter > 0f &&
+            coyoteCounter > 0f)
+        {
+            rb.linearVelocity =
+                new Vector2(
+                    rb.linearVelocity.x,
+                    jumpForce
+                );
+
+            jumpBufferCounter = 0f;
+            coyoteCounter = 0f;
+        }
+    }
+
+    private void TryDash()
+    {
+        if (isDashing)
             return;
 
-        rb.linearVelocity = new Vector2(
-            rb.linearVelocity.x,
-            jumpForce
-        );
+        if (dashCooldownTimer > 0f)
+            return;
+
+        if (hitStunTimer > 0f)
+            return;
+
+        dashDirection = GetDashDirection();
+
+        if (dashDirection == Vector2.zero)
+            return;
+
+        isDashing = true;
+
+        dashTimer = dashDuration;
+        dashCooldownTimer = dashCooldown;
 
         jumpBufferCounter = 0f;
-        coyoteCounter = 0f;
+        moveInput = 0f;
+
+        if (animator != null)
+        {
+            animator.SetBool(
+                "IsDashing",
+                true
+            );
+        }
+
+        SetEnemyCollision(false);
+
+        rb.linearVelocity =
+            new Vector2(
+                dashDirection.x * dashSpeed,
+                0f
+            );
+    }
+
+    private Vector2 GetDashDirection()
+    {
+        float direction = moveInput;
+
+        if (Mathf.Approximately(direction, 0f))
+        {
+            direction =
+                transform.localScale.x >= 0f
+                    ? 1f
+                    : -1f;
+        }
+
+        return new Vector2(
+            Mathf.Sign(direction),
+            0f
+        );
+    }
+
+    private void DashMove()
+    {
+        if (!isDashing)
+            return;
+
+        rb.linearVelocity =
+            new Vector2(
+                dashDirection.x * dashSpeed,
+                0f
+            );
+
+        dashTimer -= Time.fixedDeltaTime;
+
+        if (dashTimer <= 0f)
+        {
+            EndDash();
+        }
+    }
+
+    private void EndDash()
+    {
+        if (!isDashing)
+            return;
+
+        isDashing = false;
+
+        rb.linearVelocity =
+            new Vector2(
+                0f,
+                rb.linearVelocity.y
+            );
+
+        SetEnemyCollision(true);
+
+        if (animator != null)
+        {
+            animator.SetBool(
+                "IsDashing",
+                false
+            );
+        }
+    }
+
+    private void SetEnemyCollision(bool enabled)
+    {
+        int playerLayer =
+            LayerMask.NameToLayer("Player");
+
+        int enemyLayer =
+            LayerMask.NameToLayer("Enemy");
+
+        if (playerLayer == -1 ||
+            enemyLayer == -1)
+            return;
+
+        Physics2D.IgnoreLayerCollision(
+            playerLayer,
+            enemyLayer,
+            !enabled
+        );
     }
 
     public void FaceTarget(float targetX)
     {
         if (targetX > transform.position.x)
         {
-            SetFacing(1f);
+            transform.localScale =
+                new Vector3(
+                    Mathf.Abs(baseScale.x),
+                    baseScale.y,
+                    baseScale.z
+                );
         }
         else if (targetX < transform.position.x)
         {
-            SetFacing(-1f);
+            transform.localScale =
+                new Vector3(
+                    -Mathf.Abs(baseScale.x),
+                    baseScale.y,
+                    baseScale.z
+                );
         }
     }
 
@@ -221,7 +425,10 @@ public class PlayerController : MonoBehaviour
         float direction
     )
     {
-        if (Mathf.Approximately(direction, 0f))
+        if (isDashing)
+            EndDash();
+
+        if (direction == 0f)
         {
             direction =
                 transform.localScale.x >= 0f
@@ -229,12 +436,52 @@ public class PlayerController : MonoBehaviour
                     : 1f;
         }
 
-        hitStunTimer = Mathf.Max(0f, duration);
+        hitStunTimer = duration;
 
-        rb.linearVelocity = new Vector2(
-            direction * knockbackForce,
-            rb.linearVelocity.y
-        );
+        rb.linearVelocity =
+            new Vector2(
+                direction * knockbackForce,
+                rb.linearVelocity.y
+            );
+    }
+
+    // =========================================================
+    // 이동속도 강화
+    // =========================================================
+
+    public float GetMoveSpeed()
+    {
+        return moveSpeed;
+    }
+
+    public float GetBaseMoveSpeed()
+    {
+        return baseMoveSpeed;
+    }
+
+    public void SetUpgradeLevel(
+        int upgradeLevel,
+        float speedPerLevel
+    )
+    {
+        if (upgradeLevel < 0)
+            upgradeLevel = 0;
+
+        if (speedPerLevel < 0f)
+            speedPerLevel = 0f;
+
+        moveSpeed =
+            baseMoveSpeed +
+            upgradeLevel * speedPerLevel;
+    }
+
+    // =========================================================
+    // 대쉬 상태
+    // =========================================================
+
+    public bool IsDashing()
+    {
+        return isDashing;
     }
 
     private void ClampToScreen()
@@ -244,7 +491,8 @@ public class PlayerController : MonoBehaviour
 
         Camera mainCamera = Camera.main;
 
-        if (mainCamera == null || !mainCamera.orthographic)
+        if (mainCamera == null ||
+            !mainCamera.orthographic)
             return;
 
         float cameraHeight =
@@ -261,10 +509,13 @@ public class PlayerController : MonoBehaviour
             mainCamera.transform.position.x +
             cameraWidth * 0.5f;
 
-        float colliderExtentX =
-            playerCollider != null
-                ? playerCollider.bounds.extents.x
-                : 0f;
+        float colliderExtentX = 0f;
+
+        if (playerCollider != null)
+        {
+            colliderExtentX =
+                playerCollider.bounds.extents.x;
+        }
 
         float minX =
             leftScreen +
@@ -276,33 +527,47 @@ public class PlayerController : MonoBehaviour
             colliderExtentX -
             screenPadding;
 
-        Vector2 currentPosition = rb.position;
+        Vector2 currentPosition =
+            rb.position;
 
-        float clampedX = Mathf.Clamp(
-            currentPosition.x,
-            minX,
-            maxX
-        );
+        float clampedX =
+            Mathf.Clamp(
+                currentPosition.x,
+                minX,
+                maxX
+            );
 
-        if (Mathf.Approximately(currentPosition.x, clampedX))
-            return;
+        if (!Mathf.Approximately(
+                currentPosition.x,
+                clampedX))
+        {
+            rb.position =
+                new Vector2(
+                    clampedX,
+                    currentPosition.y
+                );
 
-        rb.position = new Vector2(
-            clampedX,
-            currentPosition.y
-        );
-
-        rb.linearVelocity = new Vector2(
-            0f,
-            rb.linearVelocity.y
-        );
+            if (!isDashing)
+            {
+                rb.linearVelocity =
+                    new Vector2(
+                        0f,
+                        rb.linearVelocity.y
+                    );
+            }
+        }
     }
 
     private void UpdateAnimation()
     {
+        if (animator == null)
+            return;
+
         animator.SetBool(
             "IsMoving",
-            moveInput != 0f && !IsHitStunned
+            moveInput != 0f &&
+            hitStunTimer <= 0f &&
+            !isDashing
         );
 
         animator.SetBool(
@@ -314,32 +579,44 @@ public class PlayerController : MonoBehaviour
             "VerticalVelocity",
             rb.linearVelocity.y
         );
+
+        animator.SetBool(
+            "IsDashing",
+            isDashing
+        );
     }
 
     private void Flip()
     {
-        if (IsHitStunned)
+        if (hitStunTimer > 0f)
+            return;
+
+        if (isDashing)
             return;
 
         if (moveInput < 0f)
         {
-            SetFacing(-1f);
+            transform.localScale =
+                new Vector3(
+                    -Mathf.Abs(baseScale.x),
+                    baseScale.y,
+                    baseScale.z
+                );
         }
         else if (moveInput > 0f)
         {
-            SetFacing(1f);
+            transform.localScale =
+                new Vector3(
+                    Mathf.Abs(baseScale.x),
+                    baseScale.y,
+                    baseScale.z
+                );
         }
     }
 
-    private void SetFacing(float direction)
+    private void OnDisable()
     {
-        float sign = Mathf.Sign(direction);
-
-        transform.localScale = new Vector3(
-            Mathf.Abs(baseScale.x) * sign,
-            baseScale.y,
-            baseScale.z
-        );
+        SetEnemyCollision(true);
     }
 
     private void OnDrawGizmosSelected()
@@ -359,7 +636,10 @@ public class PlayerController : MonoBehaviour
 
         Camera mainCamera = Camera.main;
 
-        if (mainCamera == null || !mainCamera.orthographic)
+        if (mainCamera == null)
+            return;
+
+        if (!mainCamera.orthographic)
             return;
 
         float cameraHeight =
@@ -404,7 +684,4 @@ public class PlayerController : MonoBehaviour
             )
         );
     }
-
-    private bool IsHitStunned =>
-        hitStunTimer > 0f;
 }

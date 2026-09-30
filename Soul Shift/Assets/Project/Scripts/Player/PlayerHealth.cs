@@ -18,6 +18,7 @@ public class PlayerHealth : MonoBehaviour
 
     private int maxHitCount;
     private int currentHitCount;
+
     private float invincibleTimer;
 
     private SpriteRenderer spriteRenderer;
@@ -25,6 +26,7 @@ public class PlayerHealth : MonoBehaviour
     private PlayerCombat playerCombat;
     private PlayerController playerController;
     private Rigidbody2D rb;
+
     private GameOverUI gameOverUI;
 
     private Coroutine hitFlashCoroutine;
@@ -33,12 +35,23 @@ public class PlayerHealth : MonoBehaviour
 
     private void Awake()
     {
-        maxHitCount = Mathf.Max(
-            1,
-            baseMaxHitCount
-        );
+        maxHitCount = baseMaxHitCount;
 
-        currentHitCount = 0;
+        // 씬 이동 후 저장된 HP 불러오기
+        if (PlayerRunData.HasSavedHealth())
+        {
+            currentHitCount =
+                PlayerRunData.GetSavedHitCount();
+        }
+        else
+        {
+            currentHitCount = 0;
+        }
+
+        if (currentHitCount > maxHitCount)
+        {
+            currentHitCount = maxHitCount;
+        }
 
         spriteRenderer = GetComponent<SpriteRenderer>();
         animator = GetComponent<Animator>();
@@ -62,16 +75,20 @@ public class PlayerHealth : MonoBehaviour
         if (isDead)
             return;
 
-        if (invincibleTimer <= 0f)
-            return;
-
-        invincibleTimer -= Time.deltaTime;
-
-        if (invincibleTimer < 0f)
+        if (invincibleTimer > 0f)
         {
-            invincibleTimer = 0f;
+            invincibleTimer -= Time.deltaTime;
+
+            if (invincibleTimer < 0f)
+            {
+                invincibleTimer = 0f;
+            }
         }
     }
+
+    // =========================================================
+    // Damage
+    // =========================================================
 
     public void TakeDamage(int damage)
     {
@@ -89,16 +106,15 @@ public class PlayerHealth : MonoBehaviour
         if (isDead)
             return;
 
-        if (damage <= 0)
-            return;
-
         if (invincibleTimer > 0f)
             return;
 
-        currentHitCount = Mathf.Min(
-            currentHitCount + 1,
-            maxHitCount
-        );
+        currentHitCount++;
+
+        if (currentHitCount > maxHitCount)
+        {
+            currentHitCount = maxHitCount;
+        }
 
         invincibleTimer = invincibleTime;
 
@@ -106,27 +122,29 @@ public class PlayerHealth : MonoBehaviour
             $"Player Hit : {currentHitCount} / {maxHitCount}"
         );
 
-        // 적을 바라봄
+        // 적을 바라보기
         if (playerController != null)
         {
-            playerController.FaceTarget(
-                attackerX
-            );
+            playerController.FaceTarget(attackerX);
         }
 
-        // 적의 반대 방향으로 넉백
+        // 넉백 방향
         float knockbackDirection;
 
         if (attackerX < transform.position.x)
         {
+            // 적이 왼쪽
+            // 플레이어는 오른쪽으로 넉백
             knockbackDirection = 1f;
         }
         else
         {
+            // 적이 오른쪽
+            // 플레이어는 왼쪽으로 넉백
             knockbackDirection = -1f;
         }
 
-        // 공격 중이면 취소
+        // 공격 중이면 공격 취소
         if (playerCombat != null)
         {
             playerCombat.CancelAttack();
@@ -149,32 +167,29 @@ public class PlayerHealth : MonoBehaviour
             return;
         }
 
-        // 일반 피격
-        PlayHitAnimation();
-        StartHitFlash();
+        // 피격 애니메이션
+        if (animator != null)
+        {
+            animator.ResetTrigger("Death");
+            animator.SetTrigger("Hit");
+        }
+
+        // 빨간색 플래시
+        if (spriteRenderer != null)
+        {
+            if (hitFlashCoroutine != null)
+            {
+                StopCoroutine(hitFlashCoroutine);
+            }
+
+            hitFlashCoroutine =
+                StartCoroutine(HitFlash());
+        }
     }
 
-    private void PlayHitAnimation()
-    {
-        if (animator == null)
-            return;
-
-        animator.ResetTrigger("Death");
-        animator.SetTrigger("Hit");
-    }
-
-    private void StartHitFlash()
-    {
-        if (spriteRenderer == null)
-            return;
-
-        StopHitFlash();
-
-        hitFlashCoroutine =
-            StartCoroutine(
-                HitFlash()
-            );
-    }
+    // =========================================================
+    // Hit Flash
+    // =========================================================
 
     private IEnumerator HitFlash()
     {
@@ -196,17 +211,9 @@ public class PlayerHealth : MonoBehaviour
         hitFlashCoroutine = null;
     }
 
-    private void StopHitFlash()
-    {
-        if (hitFlashCoroutine == null)
-            return;
-
-        StopCoroutine(
-            hitFlashCoroutine
-        );
-
-        hitFlashCoroutine = null;
-    }
+    // =========================================================
+    // Death
+    // =========================================================
 
     private void Die()
     {
@@ -223,97 +230,72 @@ public class PlayerHealth : MonoBehaviour
             rb.linearVelocity = Vector2.zero;
         }
 
-        // 공격 취소
+        // 공격 비활성화
         if (playerCombat != null)
         {
             playerCombat.CancelAttack();
             playerCombat.enabled = false;
         }
 
-        // 이동/점프 정지
+        // 이동 비활성화
         if (playerController != null)
         {
             playerController.enabled = false;
         }
 
-        // 피격 플래시 종료
-        StopHitFlash();
+        // 피격 플래시 정리
+        if (hitFlashCoroutine != null)
+        {
+            StopCoroutine(hitFlashCoroutine);
+            hitFlashCoroutine = null;
+        }
 
         // 색상 복구
         if (spriteRenderer != null)
         {
-            spriteRenderer.color =
-                Color.white;
+            spriteRenderer.color = Color.white;
         }
 
-        // Death 재생
-        PlayDeathAnimation();
-    }
-
-    private void PlayDeathAnimation()
-    {
-        if (animator == null)
+        if (animator != null)
         {
-            Debug.LogWarning(
-                "Player Animator를 찾을 수 없습니다."
+            animator.ResetTrigger("Attack");
+            animator.ResetTrigger("Hit");
+            animator.ResetTrigger("Death");
+
+            animator.SetBool(
+                "IsMoving",
+                false
             );
 
-            return;
+            animator.SetBool(
+                "IsGrounded",
+                false
+            );
+
+            animator.SetBool(
+                "IsAttacking",
+                false
+            );
+
+            animator.SetFloat(
+                "VerticalVelocity",
+                0f
+            );
+
+            // Death 상태 직접 재생
+            animator.Play(
+                "Base Layer.Player_Death",
+                0,
+                0f
+            );
+
+            // 즉시 Animator 적용
+            animator.Update(0f);
         }
-
-        // 모든 Trigger 초기화
-        animator.ResetTrigger("Attack");
-        animator.ResetTrigger("Hit");
-        animator.ResetTrigger("Death");
-
-        // 다른 애니메이션 조건 제거
-        animator.SetBool(
-            "IsMoving",
-            false
-        );
-
-        animator.SetBool(
-            "IsGrounded",
-            false
-        );
-
-        animator.SetBool(
-            "IsAttacking",
-            false
-        );
-
-        animator.SetFloat(
-            "VerticalVelocity",
-            0f
-        );
-
-        // Animator가 꺼져 있을 가능성 방지
-        animator.enabled = true;
-
-        // 현재 상태를 즉시 갱신
-        animator.Update(0f);
-
-        // Death State 직접 재생
-        int deathStateHash =
-            Animator.StringToHash(
-                "Base Layer.Player_Death"
-            );
-
-        animator.Play(
-            deathStateHash,
-            0,
-            0f
-        );
-
-        // 이번 프레임에 즉시 적용
-        animator.Update(0f);
-
-        Debug.Log(
-            "Player_Death 재생"
-        );
     }
 
-    // Player_Death 마지막 프레임 Animation Event
+    // Player_Death 애니메이션 마지막 프레임
+    // Animation Event에서 호출
     public void EndDeath()
     {
         Debug.Log(
@@ -334,18 +316,19 @@ public class PlayerHealth : MonoBehaviour
         Destroy(gameObject);
     }
 
+    // =========================================================
+    // HP 강화
+    // =========================================================
+
     public void IncreaseMaxHitCount(int amount)
     {
-        if (isDead)
-            return;
-
         if (amount <= 0)
             return;
 
         maxHitCount += amount;
 
         Debug.Log(
-            $"Max Heart Increased : {maxHitCount}"
+            $"Max HP Increased : {maxHitCount}"
         );
     }
 
@@ -354,16 +337,55 @@ public class PlayerHealth : MonoBehaviour
         if (amount <= 0)
             return;
 
-        maxHitCount = Mathf.Max(
-            1,
-            maxHitCount - amount
-        );
+        maxHitCount -= amount;
 
-        currentHitCount = Mathf.Min(
-            currentHitCount,
-            maxHitCount
+        if (maxHitCount < 1)
+        {
+            maxHitCount = 1;
+        }
+
+        if (currentHitCount > maxHitCount)
+        {
+            currentHitCount = maxHitCount;
+        }
+    }
+
+    // 강화 관리자에서 현재 강화 레벨 적용
+    public void SetUpgradeLevel(
+        int upgradeLevel,
+        int hpPerLevel
+    )
+    {
+        if (upgradeLevel < 0)
+            upgradeLevel = 0;
+
+        if (hpPerLevel < 0)
+            hpPerLevel = 0;
+
+        maxHitCount =
+            baseMaxHitCount +
+            upgradeLevel * hpPerLevel;
+
+        if (currentHitCount > maxHitCount)
+        {
+            currentHitCount = maxHitCount;
+        }
+
+        Debug.Log(
+            $"HP 강화 적용 : " +
+            $"Lv.{upgradeLevel} / " +
+            $"Max HP {maxHitCount}"
         );
     }
+
+    public int GetBaseMaxHitCount()
+    {
+        return baseMaxHitCount;
+    }
+
+    // =========================================================
+    // HP Recovery
+    // =========================================================
 
     public void RestoreFullHealth()
     {
@@ -372,6 +394,29 @@ public class PlayerHealth : MonoBehaviour
 
         currentHitCount = 0;
     }
+
+    // =========================================================
+    // Scene 이동용 HP 저장
+    // =========================================================
+
+    public void SaveHealthForSceneChange()
+    {
+        if (isDead)
+            return;
+
+        PlayerRunData.SaveHealth(
+            currentHitCount
+        );
+
+        Debug.Log(
+            $"씬 이동 HP 저장 : " +
+            $"{currentHitCount} / {maxHitCount}"
+        );
+    }
+
+    // =========================================================
+    // Getter
+    // =========================================================
 
     public int GetCurrentHitCount()
     {
@@ -385,7 +430,8 @@ public class PlayerHealth : MonoBehaviour
 
     public int GetRemainingHits()
     {
-        return maxHitCount - currentHitCount;
+        return maxHitCount -
+               currentHitCount;
     }
 
     public bool IsDead()

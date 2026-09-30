@@ -4,86 +4,169 @@ using UnityEngine;
 public class PlayerAttackHitbox : MonoBehaviour
 {
     [Header("Damage")]
-    [SerializeField] private int damage = 10;
+    [SerializeField] private int baseDamage = 10;
+
+    private int damage;
 
     private BoxCollider2D boxCollider;
 
-    // 이번 공격에서 이미 맞은 적
     private readonly HashSet<EnemyHealth> hitEnemies = new();
+    private readonly HashSet<BossHealth> hitBosses = new();
+    private readonly HashSet<BreakableChest> hitChests = new();
 
     private void Awake()
     {
         boxCollider = GetComponent<BoxCollider2D>();
+
+        damage = baseDamage;
     }
 
     private void OnEnable()
     {
-        // 새로운 공격이 시작되면 적중 기록 초기화
         hitEnemies.Clear();
+        hitBosses.Clear();
+        hitChests.Clear();
 
-        // Hitbox가 켜지는 순간 이미 범위 안에 있는 적 검사
-        DetectCurrentEnemies();
+        DetectCurrentTargets();
     }
 
-    // =========================
-    // 현재 공격 범위 안의 적 검사
-    // =========================
-    private void DetectCurrentEnemies()
+    private void DetectCurrentTargets()
     {
         if (boxCollider == null)
             return;
 
-        Collider2D[] hits = Physics2D.OverlapBoxAll(
-            boxCollider.bounds.center,
-            boxCollider.bounds.size,
-            transform.eulerAngles.z
-        );
+        Collider2D[] hits =
+            Physics2D.OverlapBoxAll(
+                boxCollider.bounds.center,
+                boxCollider.bounds.size,
+                transform.eulerAngles.z
+            );
 
         foreach (Collider2D hit in hits)
         {
-            TryDamageEnemy(hit);
+            TryDamageTarget(hit);
         }
     }
 
-    // =========================
-    // 이후 새로 들어오는 적 검사
-    // =========================
     private void OnTriggerEnter2D(Collider2D other)
     {
-        TryDamageEnemy(other);
+        TryDamageTarget(other);
     }
 
-    // =========================
-    // 적에게 데미지 주기
-    // =========================
-    private void TryDamageEnemy(Collider2D other)
+    private void TryDamageTarget(Collider2D other)
     {
+        if (other == null)
+            return;
+
+        // =====================================================
+        // Normal Enemy
+        // =====================================================
+
         EnemyHealth enemy =
             other.GetComponentInParent<EnemyHealth>();
 
-        if (enemy == null)
+        if (enemy != null)
+        {
+            if (!hitEnemies.Contains(enemy))
+            {
+                hitEnemies.Add(enemy);
+
+                enemy.TakeDamage(damage);
+            }
+
             return;
+        }
 
-        // 같은 공격에서 같은 적을 중복 공격하지 않음
-        if (hitEnemies.Contains(enemy))
+        // =====================================================
+        // Boss
+        // =====================================================
+
+        BossHealth boss =
+            other.GetComponentInParent<BossHealth>();
+
+        if (boss != null)
+        {
+            if (!hitBosses.Contains(boss))
+            {
+                hitBosses.Add(boss);
+
+                boss.TakeDamage(damage);
+            }
+
             return;
+        }
 
-        hitEnemies.Add(enemy);
+        // =====================================================
+        // Chest
+        // =====================================================
 
-        enemy.TakeDamage(damage);
+        BreakableChest chest =
+            other.GetComponentInParent<BreakableChest>();
+
+        if (chest != null)
+        {
+            if (!hitChests.Contains(chest))
+            {
+                hitChests.Add(chest);
+
+                chest.TakeDamage(damage);
+            }
+        }
     }
 
-    // =========================
-    // 에디터에서 공격 범위 표시
-    // =========================
+    // =========================================================
+    // Damage
+    // =========================================================
+
+    public int GetDamage()
+    {
+        return damage;
+    }
+
+    public int GetBaseDamage()
+    {
+        return baseDamage;
+    }
+
+    public void SetUpgradeLevel(
+        int upgradeLevel,
+        int damagePerLevel
+    )
+    {
+        if (upgradeLevel < 0)
+            upgradeLevel = 0;
+
+        if (damagePerLevel < 0)
+            damagePerLevel = 0;
+
+        damage =
+            baseDamage +
+            upgradeLevel *
+            damagePerLevel;
+
+        Debug.Log(
+            $"공격력 적용 : " +
+            $"기본 {baseDamage} / " +
+            $"강화 Lv.{upgradeLevel} / " +
+            $"현재 {damage}"
+        );
+    }
+
+    // =========================================================
+    // Gizmos
+    // =========================================================
+
     private void OnDrawGizmos()
     {
-        BoxCollider2D box = GetComponent<BoxCollider2D>();
+        BoxCollider2D box =
+            GetComponent<BoxCollider2D>();
 
         if (box == null)
             return;
 
-        Gizmos.matrix = transform.localToWorldMatrix;
+        Gizmos.matrix =
+            transform.localToWorldMatrix;
+
         Gizmos.DrawWireCube(
             box.offset,
             box.size

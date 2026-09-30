@@ -298,6 +298,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHealth
   maxHealth: 30
+  goldReward: 50
   hitFlashDuration: 0.08
   damagePopupPrefab: {fileID: 5393837235085412000, guid: 63cac8f154648b44aa8a4e023e79274e, type: 3}
   damagePopupOffset: {x: 0, y: 0.5, z: 0}
@@ -337,7 +338,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyController
   target: {fileID: 0}
-  detectionRange: 4.5
+  detectionRange: 3
   maxVerticalDifference: 1
   attackRange: 1.2
   attackCooldown: 1.25
