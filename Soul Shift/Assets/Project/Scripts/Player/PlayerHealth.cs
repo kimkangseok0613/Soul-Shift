@@ -16,6 +16,8 @@ public class PlayerHealth : MonoBehaviour
     [Header("Invincible")]
     [SerializeField] private float invincibleTime = 0.3f;
 
+    private const string SavedHealthKey = "PlayerCurrentHitCount";
+
     private int maxHitCount;
     private int currentHitCount;
 
@@ -35,23 +37,7 @@ public class PlayerHealth : MonoBehaviour
 
     private void Awake()
     {
-        maxHitCount = baseMaxHitCount;
-
-        // 씬 이동 후 저장된 HP 불러오기
-        if (PlayerRunData.HasSavedHealth())
-        {
-            currentHitCount =
-                PlayerRunData.GetSavedHitCount();
-        }
-        else
-        {
-            currentHitCount = 0;
-        }
-
-        if (currentHitCount > maxHitCount)
-        {
-            currentHitCount = maxHitCount;
-        }
+        InitializeHealth();
 
         spriteRenderer = GetComponent<SpriteRenderer>();
         animator = GetComponent<Animator>();
@@ -68,6 +54,17 @@ public class PlayerHealth : MonoBehaviour
                 "GameOverUI를 찾을 수 없습니다."
             );
         }
+
+        LoadHealthForSceneChange();
+    }
+
+    private void InitializeHealth()
+    {
+        maxHitCount = baseMaxHitCount;
+        currentHitCount = 0;
+
+        invincibleTimer = 0f;
+        isDead = false;
     }
 
     private void Update()
@@ -85,10 +82,6 @@ public class PlayerHealth : MonoBehaviour
             }
         }
     }
-
-    // =========================================================
-    // Damage
-    // =========================================================
 
     public void TakeDamage(int damage)
     {
@@ -113,10 +106,12 @@ public class PlayerHealth : MonoBehaviour
 
         if (currentHitCount > maxHitCount)
         {
-            currentHitCount = maxHitCount;
+            currentHitCount =
+                maxHitCount;
         }
 
-        invincibleTimer = invincibleTime;
+        invincibleTimer =
+            invincibleTime;
 
         Debug.Log(
             $"Player Hit : {currentHitCount} / {maxHitCount}"
@@ -125,7 +120,9 @@ public class PlayerHealth : MonoBehaviour
         // 적을 바라보기
         if (playerController != null)
         {
-            playerController.FaceTarget(attackerX);
+            playerController.FaceTarget(
+                attackerX
+            );
         }
 
         // 넉백 방향
@@ -179,24 +176,25 @@ public class PlayerHealth : MonoBehaviour
         {
             if (hitFlashCoroutine != null)
             {
-                StopCoroutine(hitFlashCoroutine);
+                StopCoroutine(
+                    hitFlashCoroutine
+                );
             }
 
             hitFlashCoroutine =
-                StartCoroutine(HitFlash());
+                StartCoroutine(
+                    HitFlash()
+                );
         }
     }
-
-    // =========================================================
-    // Hit Flash
-    // =========================================================
 
     private IEnumerator HitFlash()
     {
         Color originalColor =
             spriteRenderer.color;
 
-        spriteRenderer.color = Color.red;
+        spriteRenderer.color =
+            Color.red;
 
         yield return new WaitForSeconds(
             hitFlashDuration
@@ -211,10 +209,6 @@ public class PlayerHealth : MonoBehaviour
         hitFlashCoroutine = null;
     }
 
-    // =========================================================
-    // Death
-    // =========================================================
-
     private void Die()
     {
         if (isDead)
@@ -227,7 +221,8 @@ public class PlayerHealth : MonoBehaviour
         // 이동 정지
         if (rb != null)
         {
-            rb.linearVelocity = Vector2.zero;
+            rb.linearVelocity =
+                Vector2.zero;
         }
 
         // 공격 비활성화
@@ -243,25 +238,31 @@ public class PlayerHealth : MonoBehaviour
             playerController.enabled = false;
         }
 
-        // 피격 플래시 정리
+        // 피격 플래시 종료
         if (hitFlashCoroutine != null)
         {
-            StopCoroutine(hitFlashCoroutine);
+            StopCoroutine(
+                hitFlashCoroutine
+            );
+
             hitFlashCoroutine = null;
         }
 
         // 색상 복구
         if (spriteRenderer != null)
         {
-            spriteRenderer.color = Color.white;
+            spriteRenderer.color =
+                Color.white;
         }
 
         if (animator != null)
         {
+            // 기존 Trigger 초기화
             animator.ResetTrigger("Attack");
             animator.ResetTrigger("Hit");
             animator.ResetTrigger("Death");
 
+            // 이동 관련 파라미터 초기화
             animator.SetBool(
                 "IsMoving",
                 false
@@ -316,23 +317,67 @@ public class PlayerHealth : MonoBehaviour
         Destroy(gameObject);
     }
 
-    // =========================================================
+    // =========================
     // HP 강화
-    // =========================================================
+    // =========================
 
-    public void IncreaseMaxHitCount(int amount)
+    public void SetUpgradeLevel(
+        int upgradeLevel,
+        int hpPerLevel
+    )
+    {
+        if (upgradeLevel < 0)
+        {
+            upgradeLevel = 0;
+        }
+
+        if (hpPerLevel < 0)
+        {
+            hpPerLevel = 0;
+        }
+
+        maxHitCount =
+            baseMaxHitCount +
+            upgradeLevel * hpPerLevel;
+
+        if (maxHitCount < 1)
+        {
+            maxHitCount = 1;
+        }
+
+        if (currentHitCount > maxHitCount)
+        {
+            currentHitCount =
+                maxHitCount;
+        }
+
+        Debug.Log(
+            $"HP 강화 적용 : 기본 {baseMaxHitCount} / 강화 Lv.{upgradeLevel} / 최대 HP {maxHitCount}"
+        );
+    }
+
+    public void IncreaseMaxHitCount(
+        int amount
+    )
     {
         if (amount <= 0)
             return;
 
         maxHitCount += amount;
 
+        if (maxHitCount < 1)
+        {
+            maxHitCount = 1;
+        }
+
         Debug.Log(
-            $"Max HP Increased : {maxHitCount}"
+            $"Max Heart Increased : {maxHitCount}"
         );
     }
 
-    public void DecreaseMaxHitCount(int amount)
+    public void DecreaseMaxHitCount(
+        int amount
+    )
     {
         if (amount <= 0)
             return;
@@ -346,46 +391,14 @@ public class PlayerHealth : MonoBehaviour
 
         if (currentHitCount > maxHitCount)
         {
-            currentHitCount = maxHitCount;
+            currentHitCount =
+                maxHitCount;
         }
     }
 
-    // 강화 관리자에서 현재 강화 레벨 적용
-    public void SetUpgradeLevel(
-        int upgradeLevel,
-        int hpPerLevel
-    )
-    {
-        if (upgradeLevel < 0)
-            upgradeLevel = 0;
-
-        if (hpPerLevel < 0)
-            hpPerLevel = 0;
-
-        maxHitCount =
-            baseMaxHitCount +
-            upgradeLevel * hpPerLevel;
-
-        if (currentHitCount > maxHitCount)
-        {
-            currentHitCount = maxHitCount;
-        }
-
-        Debug.Log(
-            $"HP 강화 적용 : " +
-            $"Lv.{upgradeLevel} / " +
-            $"Max HP {maxHitCount}"
-        );
-    }
-
-    public int GetBaseMaxHitCount()
-    {
-        return baseMaxHitCount;
-    }
-
-    // =========================================================
-    // HP Recovery
-    // =========================================================
+    // =========================
+    // HP 회복
+    // =========================
 
     public void RestoreFullHealth()
     {
@@ -393,30 +406,99 @@ public class PlayerHealth : MonoBehaviour
             return;
 
         currentHitCount = 0;
+        invincibleTimer = 0f;
+
+        Debug.Log(
+            $"HP 회복 : {GetRemainingHits()} / {maxHitCount}"
+        );
     }
 
-    // =========================================================
-    // Scene 이동용 HP 저장
-    // =========================================================
+    // =========================
+    // 씬 이동 HP 저장
+    // =========================
 
     public void SaveHealthForSceneChange()
     {
         if (isDead)
+        {
             return;
+        }
 
-        PlayerRunData.SaveHealth(
+        PlayerPrefs.SetInt(
+            SavedHealthKey,
             currentHitCount
         );
 
+        PlayerPrefs.Save();
+
         Debug.Log(
-            $"씬 이동 HP 저장 : " +
-            $"{currentHitCount} / {maxHitCount}"
+            $"씬 이동 HP 저장 : {GetRemainingHits()} / {maxHitCount}"
         );
     }
 
-    // =========================================================
+    private void LoadHealthForSceneChange()
+    {
+        if (!PlayerPrefs.HasKey(
+            SavedHealthKey
+        ))
+        {
+            // 저장된 HP가 없으면 풀피
+            currentHitCount = 0;
+
+            return;
+        }
+
+        currentHitCount =
+            PlayerPrefs.GetInt(
+                SavedHealthKey,
+                0
+            );
+
+        if (currentHitCount < 0)
+        {
+            currentHitCount = 0;
+        }
+
+        if (currentHitCount > maxHitCount)
+        {
+            currentHitCount =
+                maxHitCount;
+        }
+
+        Debug.Log(
+            $"씬 이동 HP 불러오기 : {GetRemainingHits()} / {maxHitCount}"
+        );
+    }
+
+    // =========================
+    // 게임 리셋
+    // =========================
+
+    public void ResetHealth()
+    {
+        maxHitCount =
+            baseMaxHitCount;
+
+        currentHitCount = 0;
+
+        invincibleTimer = 0f;
+        isDead = false;
+
+        // 씬 이동용 HP 저장값도 삭제
+        PlayerPrefs.DeleteKey(
+            SavedHealthKey
+        );
+
+        PlayerPrefs.Save();
+
+        Debug.Log(
+            $"HP 초기화 : {GetRemainingHits()} / {maxHitCount}"
+        );
+    }
+
+    // =========================
     // Getter
-    // =========================================================
+    // =========================
 
     public int GetCurrentHitCount()
     {

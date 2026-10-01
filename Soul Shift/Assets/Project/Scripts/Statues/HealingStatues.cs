@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -6,8 +7,19 @@ public class HealingStatues : MonoBehaviour
     [Header("Player Detection")]
     [SerializeField] private string playerTag = "Player";
 
+    [Header("Interaction Text")]
+    [SerializeField] private TextMeshPro healText;
+
     private PlayerHealth playerHealth;
     private bool playerInRange;
+
+    private void Awake()
+    {
+        if (healText != null)
+        {
+            healText.gameObject.SetActive(false);
+        }
+    }
 
     private void Update()
     {
@@ -32,7 +44,7 @@ public class HealingStatues : MonoBehaviour
         playerHealth =
             other.GetComponent<PlayerHealth>();
 
-        // Player가 자식 오브젝트의 Collider를 사용한다면
+        // Player가 자식 오브젝트의 Collider를 사용하는 경우
         if (playerHealth == null)
         {
             playerHealth =
@@ -43,6 +55,11 @@ public class HealingStatues : MonoBehaviour
             return;
 
         playerInRange = true;
+
+        if (healText != null)
+        {
+            healText.gameObject.SetActive(true);
+        }
     }
 
     private void OnTriggerExit2D(Collider2D other)
@@ -52,6 +69,11 @@ public class HealingStatues : MonoBehaviour
 
         playerInRange = false;
         playerHealth = null;
+
+        if (healText != null)
+        {
+            healText.gameObject.SetActive(false);
+        }
     }
 
     private void Interact()
@@ -61,6 +83,8 @@ public class HealingStatues : MonoBehaviour
 
         playerHealth.RestoreFullHealth();
 
-        Debug.Log("Healing Statue : 플레이어 HP 완전 회복");
+        Debug.Log(
+            "Healing Statue : 플레이어 HP 완전 회복"
+        );
     }
 }

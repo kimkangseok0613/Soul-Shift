@@ -3,13 +3,9 @@ using UnityEngine;
 public class BossHealth : MonoBehaviour
 {
     [Header("HP")]
-    [SerializeField] private int maxHp = 300;
-
-    [Header("Armor")]
-    [SerializeField] private int armorHitCount = 5;
+    [SerializeField] private int maxHp = 100;
 
     private int currentHp;
-    private int currentArmorHitCount;
 
     private bool armorBroken;
     private bool isDead;
@@ -17,19 +13,31 @@ public class BossHealth : MonoBehaviour
     private Animator animator;
     private BossController bossController;
 
-    private Collider2D[] colliders;
-
     private void Awake()
     {
-        animator = GetComponent<Animator>();
-        bossController = GetComponent<BossController>();
+        animator =
+            GetComponent<Animator>();
 
-        colliders =
-            GetComponentsInChildren<Collider2D>();
+        bossController =
+            GetComponent<BossController>();
 
         currentHp = maxHp;
-        currentArmorHitCount = armorHitCount;
+
+        armorBroken = false;
+        isDead = false;
+
+        if (animator != null)
+        {
+            animator.SetBool(
+                "ArmorBroken",
+                false
+            );
+        }
     }
+
+    // =========================================================
+    // Damage
+    // =========================================================
 
     public void TakeDamage(int damage)
     {
@@ -41,45 +49,55 @@ public class BossHealth : MonoBehaviour
 
         currentHp -= damage;
 
-        Debug.Log(
-            $"Boss Hit : {currentHp} / {maxHp}"
-        );
-
-        if (!armorBroken)
-        {
-            currentArmorHitCount--;
-
-            Debug.Log(
-                $"Boss Armor : " +
-                $"{Mathf.Max(currentArmorHitCount, 0)} / " +
-                $"{armorHitCount}"
+        currentHp =
+            Mathf.Max(
+                currentHp,
+                0
             );
 
-            if (currentArmorHitCount <= 0)
-            {
-                BreakArmor();
-            }
-            else
-            {
-                if (bossController != null)
-                {
-                    bossController.OnHit();
-                }
-            }
-        }
-        else
-        {
-            if (bossController != null)
-            {
-                bossController.OnHit();
-            }
-        }
+        Debug.Log(
+            $"Boss HP : {currentHp} / {maxHp}"
+        );
+
+        // =====================================================
+        // Death
+        // =====================================================
 
         if (currentHp <= 0)
         {
             Die();
+            return;
+        }
+
+        // =====================================================
+        // Armor Break
+        // HP 50% 이하
+        // =====================================================
+
+        if (!armorBroken &&
+            currentHp <= maxHp * 0.5f)
+        {
+            BreakArmor();
+            return;
+        }
+
+        // =====================================================
+        // Hit
+        // =====================================================
+
+        if (bossController != null)
+        {
+            bossController.OnHit();
+        }
+        else if (animator != null)
+        {
+            animator.SetTrigger("Hit");
         }
     }
+
+    // =========================================================
+    // Armor Break
+    // =========================================================
 
     private void BreakArmor()
     {
@@ -87,9 +105,18 @@ public class BossHealth : MonoBehaviour
             return;
 
         armorBroken = true;
-        currentArmorHitCount = 0;
 
-        Debug.Log("Boss Armor Break!");
+        if (animator != null)
+        {
+            animator.SetBool(
+                "ArmorBroken",
+                true
+            );
+        }
+
+        Debug.Log(
+            "Boss Armor Break!"
+        );
 
         if (bossController != null)
         {
@@ -97,9 +124,15 @@ public class BossHealth : MonoBehaviour
         }
         else if (animator != null)
         {
-            animator.SetTrigger("ArmorBreak");
+            animator.SetTrigger(
+                "ArmorBreak"
+            );
         }
     }
+
+    // =========================================================
+    // Death
+    // =========================================================
 
     private void Die()
     {
@@ -108,30 +141,19 @@ public class BossHealth : MonoBehaviour
 
         isDead = true;
 
-        Debug.Log("Boss Death");
+        Debug.Log(
+            "Boss HP 0"
+        );
 
         if (bossController != null)
         {
             bossController.OnDeath();
         }
-
-        // 죽은 보스가 물리적으로 플레이어를 막지 않도록 처리
-        foreach (Collider2D col in colliders)
+        else if (animator != null)
         {
-            if (col == null)
-                continue;
-
-            if (col.GetComponentInParent<PlayerAttackHitbox>() == null &&
-                col.GetComponentInParent<EnemyAttackHitbox>() == null)
-            {
-                col.enabled = false;
-            }
-        }
-
-        if (animator != null &&
-            bossController == null)
-        {
-            animator.SetTrigger("Death");
+            animator.SetTrigger(
+                "Death"
+            );
         }
     }
 
@@ -149,14 +171,14 @@ public class BossHealth : MonoBehaviour
         return maxHp;
     }
 
-    public int GetCurrentArmorHitCount()
+    public float GetHpPercent()
     {
-        return Mathf.Max(currentArmorHitCount, 0);
-    }
+        if (maxHp <= 0)
+            return 0f;
 
-    public int GetMaxArmorHitCount()
-    {
-        return armorHitCount;
+        return
+            (float)currentHp /
+            maxHp;
     }
 
     public bool IsArmorBroken()

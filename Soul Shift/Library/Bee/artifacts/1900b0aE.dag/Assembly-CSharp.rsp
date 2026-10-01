@@ -493,6 +493,7 @@
 "Assets/Project/Scripts/Managers/SceneMove.cs"
 "Assets/Project/Scripts/Player/PlayerController.cs"
 "Assets/Project/Scripts/Player/PlayerHealth.cs"
+"Assets/Project/Scripts/Shop/GemMerchant.cs"
 "Assets/Project/Scripts/Statues/HealingStatues.cs"
 "Assets/Project/Scripts/Statues/ShopStatue.cs"
 "Assets/Project/Scripts/UI/DamagePopup.cs"
@@ -502,6 +503,7 @@
 "Assets/Project/Scripts/UI/PlayerHealthUI.cs"
 "Assets/Project/Scripts/UI/StatusUI.cs"
 "Assets/Project/Scripts/UI/TabMenuUI.cs"
+"Assets/Project/Scripts/UI/TitleUI.cs"
 "Assets/ThirdParty/Enemy Galore 1 - Pixel Art/Script/EnemySelector.cs"
 "Assets/ThirdParty/Enemy Galore 1 - Pixel Art/Script/EnemyTest.cs"
 -langversion:9.0
