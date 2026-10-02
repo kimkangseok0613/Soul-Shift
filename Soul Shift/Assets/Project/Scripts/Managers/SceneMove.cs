@@ -27,7 +27,9 @@ public class SceneMove : MonoBehaviour
         MoveToScene(other);
     }
 
-    private void MoveToScene(Collider2D player)
+    private void MoveToScene(
+        Collider2D player
+    )
     {
         if (string.IsNullOrEmpty(
                 targetSceneName))
@@ -42,7 +44,16 @@ public class SceneMove : MonoBehaviour
 
         isMoving = true;
 
-        // 현재 플레이어 HP 저장
+        // --------------------------------
+        // 일반 씬 이동에서는
+        // 저장 위치를 사용하지 않음
+        // --------------------------------
+        RespawnManager
+            .ClearResumePositionFlag();
+
+        // --------------------------------
+        // 현재 Player HP 저장
+        // --------------------------------
         PlayerHealth playerHealth =
             player.GetComponentInParent<PlayerHealth>();
 
@@ -51,7 +62,9 @@ public class SceneMove : MonoBehaviour
             playerHealth.SaveHealthForSceneChange();
         }
 
-        // 다음 씬에서 등장할 방향 저장
+        // --------------------------------
+        // 다음 씬 SpawnSide 설정
+        // --------------------------------
         RespawnManager.NextSpawnSide =
             targetSpawnSide;
 
@@ -76,6 +89,9 @@ public class SceneMove : MonoBehaviour
 
             RespawnManager.NextSpawnSide =
                 RespawnManager.SpawnSide.Default;
+
+            RespawnManager
+                .ClearResumePositionFlag();
 
             isMoving = false;
 

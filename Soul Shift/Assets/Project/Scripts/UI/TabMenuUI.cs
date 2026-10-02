@@ -13,11 +13,13 @@ public class TabMenuUI : MonoBehaviour
 
     [Header("Tab Panels")]
     [SerializeField] private GameObject statusPanel;
+
     [SerializeField] private GameObject inventoryPanel;
 
     private void Awake()
     {
         IsMenuOpen = false;
+
         CloseMenu();
     }
 
@@ -84,27 +86,57 @@ public class TabMenuUI : MonoBehaviour
             inventoryPanel.SetActive(true);
     }
 
+    // =========================================================
+    // Title 이동
+    // =========================================================
+
     public void ReturnToTitle()
     {
-        // 현재 플레이어의 HP 저장
+        // --------------------------------
+        // 현재 Player 확인
+        // --------------------------------
         PlayerHealth playerHealth =
             FindFirstObjectByType<PlayerHealth>();
 
+        // --------------------------------
+        // HP 저장
+        // --------------------------------
         if (playerHealth != null)
         {
             playerHealth.SaveHealthForSceneChange();
 
             Debug.Log(
-                $"타이틀 이동 전 HP 저장 : " +
+                $"Title 이동 전 HP 저장 : " +
                 $"{playerHealth.GetRemainingHits()} / " +
                 $"{playerHealth.GetMaxHitCount()}"
             );
         }
 
-        // 현재 씬 저장
-        string currentSceneName =
-            SceneManager.GetActiveScene().name;
+        // --------------------------------
+        // 현재 Player 위치 저장
+        // --------------------------------
+        if (RespawnManager.Instance != null)
+        {
+            RespawnManager.Instance
+                .SaveCurrentPlayerPosition();
+        }
+        else
+        {
+            Debug.LogWarning(
+                "RespawnManager를 찾을 수 없습니다."
+            );
+        }
 
+        // --------------------------------
+        // 현재 Scene 저장
+        // --------------------------------
+        string currentSceneName =
+            SceneManager
+                .GetActiveScene()
+                .name;
+
+        // RespawnManager에서 이미 저장하지만
+        // 기존 ResumeScene 기능도 유지
         PlayerPrefs.SetString(
             ResumeSceneKey,
             currentSceneName
@@ -112,13 +144,16 @@ public class TabMenuUI : MonoBehaviour
 
         PlayerPrefs.Save();
 
+        // --------------------------------
         // 게임 정지 해제
+        // --------------------------------
         Time.timeScale = 1f;
 
         IsMenuOpen = false;
 
         Debug.Log(
-            $"타이틀로 이동 - 저장된 씬 : {currentSceneName}"
+            $"Title로 이동 - " +
+            $"저장된 Scene : {currentSceneName}"
         );
 
         SceneManager.LoadScene("Title");

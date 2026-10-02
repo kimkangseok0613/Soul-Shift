@@ -1,9 +1,13 @@
+using System.Collections;
 using UnityEngine;
 
 public class BossHealth : MonoBehaviour
 {
     [Header("HP")]
     [SerializeField] private int maxHp = 100;
+
+    [Header("Hit Effect")]
+    [SerializeField] private float hitFlashDuration = 0.08f;
 
     private int currentHp;
 
@@ -12,6 +16,9 @@ public class BossHealth : MonoBehaviour
 
     private Animator animator;
     private BossController bossController;
+    private SpriteRenderer spriteRenderer;
+
+    private Coroutine hitFlashCoroutine;
 
     private const string BossDeadKey = "BossDefeated";
 
@@ -23,22 +30,33 @@ public class BossHealth : MonoBehaviour
         bossController =
             GetComponent<BossController>();
 
-        currentHp = maxHp;
+        spriteRenderer =
+            GetComponent<SpriteRenderer>();
 
-        armorBroken = false;
-        isDead = false;
+        currentHp =
+            maxHp;
+
+        armorBroken =
+            false;
+
+        isDead =
+            false;
 
         // --------------------------------
         // 이전에 보스를 처치했는지 확인
         // --------------------------------
-        if (PlayerPrefs.GetInt(BossDeadKey, 0) == 1)
+        if (PlayerPrefs.GetInt(
+                BossDeadKey,
+                0
+            ) == 1)
         {
-            isDead = true;
-            currentHp = 0;
+            isDead =
+                true;
+
+            currentHp =
+                0;
 
             // 보스 사망 처리를 다시 호출
-            // BossController / BossRoomManager에서
-            // 문이나 이동 처리를 담당한다면 유지하기 위해 실행
             if (bossController != null)
             {
                 bossController.OnDeath();
@@ -70,7 +88,8 @@ public class BossHealth : MonoBehaviour
         if (damage <= 0)
             return;
 
-        currentHp -= damage;
+        currentHp -=
+            damage;
 
         currentHp =
             Mathf.Max(
@@ -90,6 +109,25 @@ public class BossHealth : MonoBehaviour
         {
             Die();
             return;
+        }
+
+        // =====================================================
+        // Hit Effect
+        // =====================================================
+
+        if (spriteRenderer != null)
+        {
+            if (hitFlashCoroutine != null)
+            {
+                StopCoroutine(
+                    hitFlashCoroutine
+                );
+            }
+
+            hitFlashCoroutine =
+                StartCoroutine(
+                    HitFlash()
+                );
         }
 
         // =====================================================
@@ -114,8 +152,39 @@ public class BossHealth : MonoBehaviour
         }
         else if (animator != null)
         {
-            animator.SetTrigger("Hit");
+            animator.SetTrigger(
+                "Hit"
+            );
         }
+    }
+
+    // =========================================================
+    // Hit Flash
+    // =========================================================
+
+    private IEnumerator HitFlash()
+    {
+        if (spriteRenderer == null)
+            yield break;
+
+        Color originalColor =
+            spriteRenderer.color;
+
+        spriteRenderer.color =
+            Color.red;
+
+        yield return new WaitForSeconds(
+            hitFlashDuration
+        );
+
+        if (!isDead)
+        {
+            spriteRenderer.color =
+                originalColor;
+        }
+
+        hitFlashCoroutine =
+            null;
     }
 
     // =========================================================
@@ -127,7 +196,8 @@ public class BossHealth : MonoBehaviour
         if (armorBroken)
             return;
 
-        armorBroken = true;
+        armorBroken =
+            true;
 
         if (animator != null)
         {
@@ -162,11 +232,31 @@ public class BossHealth : MonoBehaviour
         if (isDead)
             return;
 
-        isDead = true;
+        isDead =
+            true;
 
         Debug.Log(
             "Boss HP 0"
         );
+
+        // --------------------------------
+        // 피격 플래시 종료
+        // --------------------------------
+        if (hitFlashCoroutine != null)
+        {
+            StopCoroutine(
+                hitFlashCoroutine
+            );
+
+            hitFlashCoroutine =
+                null;
+        }
+
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.color =
+                Color.white;
+        }
 
         // --------------------------------
         // 보스 처치 상태 저장

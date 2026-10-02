@@ -298,10 +298,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHealth
   maxHealth: 30
-  goldReward: 50
+  goldReward: 20
   hitFlashDuration: 0.08
-  damagePopupPrefab: {fileID: 5393837235085412000, guid: 63cac8f154648b44aa8a4e023e79274e, type: 3}
-  damagePopupOffset: {x: 0, y: 0.5, z: 0}
   deathDelay: 0.8
 --- !u!95 &3025156665750712294
 Animator:

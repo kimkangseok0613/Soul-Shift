@@ -497,6 +497,8 @@
 "Assets/Project/Scripts/Shop/GemMerchant.cs"
 "Assets/Project/Scripts/Statues/HealingStatues.cs"
 "Assets/Project/Scripts/Statues/ShopStatue.cs"
+"Assets/Project/Scripts/Tutorial/TutorialManager.cs"
+"Assets/Project/Scripts/Tutorial/TutorialTrigger.cs"
 "Assets/Project/Scripts/UI/DamagePopup.cs"
 "Assets/Project/Scripts/UI/GameOverUI.cs"
 "Assets/Project/Scripts/UI/GoldUI.cs"
