@@ -7,6 +7,7 @@ public class PlayerAttackHitbox : MonoBehaviour
     [SerializeField] private int baseDamage = 10;
 
     private int damage;
+    private bool isInitialized;
 
     private BoxCollider2D boxCollider;
 
@@ -18,11 +19,13 @@ public class PlayerAttackHitbox : MonoBehaviour
     {
         boxCollider = GetComponent<BoxCollider2D>();
 
-        damage = baseDamage;
+        InitializeDamage();
     }
 
     private void OnEnable()
     {
+        InitializeDamage();
+
         hitEnemies.Clear();
         hitBosses.Clear();
         hitChests.Clear();
@@ -30,6 +33,21 @@ public class PlayerAttackHitbox : MonoBehaviour
         DetectCurrentTargets();
     }
 
+    // ========================================
+    // 공격력 초기화
+    // ========================================
+    private void InitializeDamage()
+    {
+        if (isInitialized)
+            return;
+
+        damage = baseDamage;
+        isInitialized = true;
+    }
+
+    // ========================================
+    // 현재 공격 범위 안의 적 / 보스 / 상자 확인
+    // ========================================
     private void DetectCurrentTargets()
     {
         if (boxCollider == null)
@@ -48,20 +66,25 @@ public class PlayerAttackHitbox : MonoBehaviour
         }
     }
 
+    // ========================================
+    // 공격 범위에 새로 들어온 대상 확인
+    // ========================================
     private void OnTriggerEnter2D(Collider2D other)
     {
         TryDamageTarget(other);
     }
 
+    // ========================================
+    // 적 / 보스 / 상자 공격
+    // ========================================
     private void TryDamageTarget(Collider2D other)
     {
         if (other == null)
             return;
 
-        // =====================================================
-        // Normal Enemy
-        // =====================================================
-
+        // --------------------------------
+        // 일반 적
+        // --------------------------------
         EnemyHealth enemy =
             other.GetComponentInParent<EnemyHealth>();
 
@@ -77,10 +100,9 @@ public class PlayerAttackHitbox : MonoBehaviour
             return;
         }
 
-        // =====================================================
-        // Boss
-        // =====================================================
-
+        // --------------------------------
+        // 보스
+        // --------------------------------
         BossHealth boss =
             other.GetComponentInParent<BossHealth>();
 
@@ -96,10 +118,9 @@ public class PlayerAttackHitbox : MonoBehaviour
             return;
         }
 
-        // =====================================================
-        // Chest
-        // =====================================================
-
+        // --------------------------------
+        // 상자
+        // --------------------------------
         BreakableChest chest =
             other.GetComponentInParent<BreakableChest>();
 
@@ -114,12 +135,13 @@ public class PlayerAttackHitbox : MonoBehaviour
         }
     }
 
-    // =========================================================
-    // Damage
-    // =========================================================
-
+    // ========================================
+    // 공격력 반환
+    // ========================================
     public int GetDamage()
     {
+        InitializeDamage();
+
         return damage;
     }
 
@@ -128,11 +150,16 @@ public class PlayerAttackHitbox : MonoBehaviour
         return baseDamage;
     }
 
+    // ========================================
+    // 공격력 강화 적용
+    // ========================================
     public void SetUpgradeLevel(
         int upgradeLevel,
         int damagePerLevel
     )
     {
+        InitializeDamage();
+
         if (upgradeLevel < 0)
             upgradeLevel = 0;
 
@@ -141,8 +168,7 @@ public class PlayerAttackHitbox : MonoBehaviour
 
         damage =
             baseDamage +
-            upgradeLevel *
-            damagePerLevel;
+            upgradeLevel * damagePerLevel;
 
         Debug.Log(
             $"공격력 적용 : " +
@@ -152,10 +178,9 @@ public class PlayerAttackHitbox : MonoBehaviour
         );
     }
 
-    // =========================================================
-    // Gizmos
-    // =========================================================
-
+    // ========================================
+    // 공격 범위 표시
+    // ========================================
     private void OnDrawGizmos()
     {
         BoxCollider2D box =

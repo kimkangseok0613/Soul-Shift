@@ -13,6 +13,8 @@ public class BossHealth : MonoBehaviour
     private Animator animator;
     private BossController bossController;
 
+    private const string BossDeadKey = "BossDefeated";
+
     private void Awake()
     {
         animator =
@@ -25,6 +27,27 @@ public class BossHealth : MonoBehaviour
 
         armorBroken = false;
         isDead = false;
+
+        // --------------------------------
+        // 이전에 보스를 처치했는지 확인
+        // --------------------------------
+        if (PlayerPrefs.GetInt(BossDeadKey, 0) == 1)
+        {
+            isDead = true;
+            currentHp = 0;
+
+            // 보스 사망 처리를 다시 호출
+            // BossController / BossRoomManager에서
+            // 문이나 이동 처리를 담당한다면 유지하기 위해 실행
+            if (bossController != null)
+            {
+                bossController.OnDeath();
+            }
+
+            gameObject.SetActive(false);
+
+            return;
+        }
 
         if (animator != null)
         {
@@ -145,6 +168,19 @@ public class BossHealth : MonoBehaviour
             "Boss HP 0"
         );
 
+        // --------------------------------
+        // 보스 처치 상태 저장
+        // --------------------------------
+        PlayerPrefs.SetInt(
+            BossDeadKey,
+            1
+        );
+
+        PlayerPrefs.Save();
+
+        // --------------------------------
+        // 보스 사망 처리
+        // --------------------------------
         if (bossController != null)
         {
             bossController.OnDeath();

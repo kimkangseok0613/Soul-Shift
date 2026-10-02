@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class EnemyHealth : MonoBehaviour
 {
@@ -11,13 +12,6 @@ public class EnemyHealth : MonoBehaviour
 
     [Header("Hit Effect")]
     [SerializeField] private float hitFlashDuration = 0.08f;
-
-    [Header("Damage Popup")]
-    [SerializeField] private GameObject damagePopupPrefab;
-
-    [SerializeField]
-    private Vector3 damagePopupOffset =
-        new Vector3(0f, 0.5f, 0f);
 
     [Header("Death")]
     [SerializeField] private float deathDelay = 0.8f;
@@ -34,30 +28,40 @@ public class EnemyHealth : MonoBehaviour
 
     private bool isDead;
 
-    private string enemyId;
+    private string enemySaveKey;
+
+    private const string EnemyDeadKeyPrefix = "EnemyDead_";
 
     private void Awake()
     {
         currentHealth = maxHealth;
 
-        spriteRenderer = GetComponent<SpriteRenderer>();
-        animator = GetComponent<Animator>();
-        enemyController = GetComponent<EnemyController>();
-        enemyCollider = GetComponent<Collider2D>();
-        rb = GetComponent<Rigidbody2D>();
+        spriteRenderer =
+            GetComponent<SpriteRenderer>();
 
-        // 씬 + Hierarchy 위치를 이용해
-        // 현재 적만의 고유 ID 생성
-        enemyId =
-            EnemyPersistence.CreateEnemyId(gameObject);
-    }
+        animator =
+            GetComponent<Animator>();
 
-    private void Start()
-    {
-        // 이전에 죽었던 적이면 이번 씬에서는 생성하지 않음
-        if (EnemyPersistence.IsDead(enemyId))
+        enemyController =
+            GetComponent<EnemyController>();
+
+        enemyCollider =
+            GetComponent<Collider2D>();
+
+        rb =
+            GetComponent<Rigidbody2D>();
+
+        enemySaveKey =
+            GetEnemySaveKey();
+
+        // 이전에 죽인 적인지 확인
+        if (PlayerPrefs.GetInt(enemySaveKey, 0) == 1)
         {
-            Destroy(gameObject);
+            isDead = true;
+
+            gameObject.SetActive(false);
+
+            return;
         }
     }
 
@@ -69,16 +73,12 @@ public class EnemyHealth : MonoBehaviour
         if (currentHealth <= 0)
             return;
 
-        if (damage <= 0)
-            return;
-
         currentHealth -= damage;
 
         Debug.Log(
-            $"{gameObject.name} HP : {currentHealth} / {maxHealth}"
+            $"{gameObject.name} HP : " +
+            $"{currentHealth} / {maxHealth}"
         );
-
-        ShowDamagePopup(damage);
 
         // 사망
         if (currentHealth <= 0)
@@ -98,41 +98,18 @@ public class EnemyHealth : MonoBehaviour
             animator.SetTrigger("Hit");
         }
 
-        // 빨간색 플래시
+        // 빨간색 피격 플래시
         if (spriteRenderer != null)
         {
             if (hitFlashCoroutine != null)
             {
-                StopCoroutine(hitFlashCoroutine);
+                StopCoroutine(
+                    hitFlashCoroutine
+                );
             }
 
             hitFlashCoroutine =
                 StartCoroutine(HitFlash());
-        }
-    }
-
-    private void ShowDamagePopup(int damage)
-    {
-        if (damagePopupPrefab == null)
-            return;
-
-        Vector3 spawnPosition =
-            transform.position +
-            damagePopupOffset;
-
-        GameObject popup =
-            Instantiate(
-                damagePopupPrefab,
-                spawnPosition,
-                Quaternion.identity
-            );
-
-        DamagePopup damagePopup =
-            popup.GetComponent<DamagePopup>();
-
-        if (damagePopup != null)
-        {
-            damagePopup.SetDamage(damage);
         }
     }
 
@@ -141,7 +118,8 @@ public class EnemyHealth : MonoBehaviour
         Color originalColor =
             spriteRenderer.color;
 
-        spriteRenderer.color = Color.red;
+        spriteRenderer.color =
+            Color.red;
 
         yield return new WaitForSeconds(
             hitFlashDuration
@@ -163,62 +141,75 @@ public class EnemyHealth : MonoBehaviour
 
         isDead = true;
 
-        // 죽었다는 사실을 저장
-        EnemyPersistence.MarkDead(enemyId);
-
         Debug.Log(
-            $"Enemy Dead : {gameObject.name}"
+            $"{gameObject.name} Enemy Dead"
         );
 
-        // -------------------------
-        // 골드 지급
-        // -------------------------
+        // --------------------------------
+        // 1. 적 사망 상태 저장
+        // --------------------------------
+        PlayerPrefs.SetInt(
+            enemySaveKey,
+            1
+        );
+
+        PlayerPrefs.Save();
+
+        // --------------------------------
+        // 2. 골드 지급
+        // --------------------------------
         if (GoldManager.Instance != null)
         {
             GoldManager.Instance.AddGold(
                 goldReward
             );
+
+            Debug.Log(
+                $"골드 획득 : +{goldReward}"
+            );
         }
         else
         {
             Debug.LogWarning(
-                "GoldManager를 찾을 수 없습니다. " +
-                "골드가 지급되지 않았습니다."
+                "GoldManager.Instance를 찾을 수 없습니다."
             );
         }
 
-        // -------------------------
-        // 1. 충돌 제거
-        // -------------------------
+        // --------------------------------
+        // 3. 충돌 제거
+        // --------------------------------
         if (enemyCollider != null)
         {
             enemyCollider.enabled = false;
         }
 
-        // -------------------------
-        // 2. 물리 이동 정지
-        // -------------------------
+        // --------------------------------
+        // 4. 물리 이동 정지
+        // --------------------------------
         if (rb != null)
         {
             rb.linearVelocity =
                 Vector2.zero;
 
-            rb.angularVelocity = 0f;
+            rb.angularVelocity =
+                0f;
 
-            rb.simulated = false;
+            rb.simulated =
+                false;
         }
 
-        // -------------------------
-        // 3. 공격 히트박스 제거
-        // -------------------------
+        // --------------------------------
+        // 5. 공격 히트박스 제거
+        // --------------------------------
         if (enemyController != null)
         {
-            enemyController.DisableAttackHitbox();
+            enemyController
+                .DisableAttackHitbox();
         }
 
-        // -------------------------
-        // 4. 피격 플래시 종료
-        // -------------------------
+        // --------------------------------
+        // 6. 피격 플래시 종료
+        // --------------------------------
         if (hitFlashCoroutine != null)
         {
             StopCoroutine(
@@ -234,17 +225,19 @@ public class EnemyHealth : MonoBehaviour
                 Color.white;
         }
 
-        // -------------------------
-        // 5. Death 애니메이션
-        // -------------------------
+        // --------------------------------
+        // 7. Death 애니메이션
+        // --------------------------------
         if (animator != null)
         {
-            animator.SetTrigger("Death");
+            animator.SetTrigger(
+                "Death"
+            );
         }
 
-        // -------------------------
-        // 6. 일정 시간 후 삭제
-        // -------------------------
+        // --------------------------------
+        // 8. 일정 시간 후 적 삭제
+        // --------------------------------
         StartCoroutine(
             DeathSequence()
         );
@@ -257,6 +250,39 @@ public class EnemyHealth : MonoBehaviour
         );
 
         Destroy(gameObject);
+    }
+
+    private string GetEnemySaveKey()
+    {
+        string sceneName =
+            SceneManager
+                .GetActiveScene()
+                .name;
+
+        string hierarchyPath =
+            "";
+
+        Transform current =
+            transform;
+
+        while (current != null)
+        {
+            hierarchyPath =
+                current.name +
+                "_" +
+                current.GetSiblingIndex() +
+                "/" +
+                hierarchyPath;
+
+            current =
+                current.parent;
+        }
+
+        return
+            EnemyDeadKeyPrefix +
+            sceneName +
+            "_" +
+            hierarchyPath;
     }
 
     public int GetCurrentHealth()

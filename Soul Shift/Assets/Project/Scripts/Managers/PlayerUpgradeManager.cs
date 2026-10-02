@@ -31,6 +31,15 @@ public class PlayerUpgradeManager : MonoBehaviour
 
     private GameObject lastPlayer;
 
+    private const string AttackLevelKey =
+        "PlayerAttackUpgradeLevel";
+
+    private const string MoveSpeedLevelKey =
+        "PlayerMoveSpeedUpgradeLevel";
+
+    private const string MaxHPLevelKey =
+        "PlayerMaxHPUpgradeLevel";
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -42,6 +51,25 @@ public class PlayerUpgradeManager : MonoBehaviour
         Instance = this;
 
         DontDestroyOnLoad(gameObject);
+
+        // 저장된 강화 레벨 불러오기
+        attackLevel =
+            PlayerPrefs.GetInt(
+                AttackLevelKey,
+                0
+            );
+
+        moveSpeedLevel =
+            PlayerPrefs.GetInt(
+                MoveSpeedLevelKey,
+                0
+            );
+
+        maxHPLevel =
+            PlayerPrefs.GetInt(
+                MaxHPLevelKey,
+                0
+            );
     }
 
     private void Start()
@@ -57,6 +85,7 @@ public class PlayerUpgradeManager : MonoBehaviour
         if (currentPlayer == null)
             return;
 
+        // 새로운 Player가 생성되었으면 강화 다시 적용
         if (currentPlayer != lastPlayer)
         {
             lastPlayer = currentPlayer;
@@ -66,7 +95,7 @@ public class PlayerUpgradeManager : MonoBehaviour
     }
 
     // =========================================================
-    // Player 적용
+    // Player 찾기
     // =========================================================
 
     private void TryApplyToPlayer()
@@ -180,6 +209,8 @@ public class PlayerUpgradeManager : MonoBehaviour
                 maxHPLevel++;
                 break;
         }
+
+        SaveUpgradeData();
 
         GameObject player =
             GameObject.FindGameObjectWithTag("Player");
@@ -321,5 +352,56 @@ public class PlayerUpgradeManager : MonoBehaviour
     public int GetBaseMaxHP()
     {
         return baseMaxHP;
+    }
+
+    // =========================================================
+    // Save
+    // =========================================================
+
+    private void SaveUpgradeData()
+    {
+        PlayerPrefs.SetInt(
+            AttackLevelKey,
+            attackLevel
+        );
+
+        PlayerPrefs.SetInt(
+            MoveSpeedLevelKey,
+            moveSpeedLevel
+        );
+
+        PlayerPrefs.SetInt(
+            MaxHPLevelKey,
+            maxHPLevel
+        );
+
+        PlayerPrefs.Save();
+    }
+
+    // =========================================================
+    // Reset
+    // =========================================================
+
+    public void ResetUpgrades()
+    {
+        attackLevel = 0;
+        moveSpeedLevel = 0;
+        maxHPLevel = 0;
+
+        SaveUpgradeData();
+
+        lastPlayer = null;
+
+        GameObject player =
+            GameObject.FindGameObjectWithTag("Player");
+
+        if (player != null)
+        {
+            ApplyToPlayer(player);
+        }
+
+        Debug.Log(
+            "Player Upgrade Reset"
+        );
     }
 }

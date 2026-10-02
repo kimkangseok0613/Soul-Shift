@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class BreakableChest : MonoBehaviour
 {
@@ -24,6 +25,10 @@ public class BreakableChest : MonoBehaviour
     private bool isOpening;
     private bool gemsSpawned;
 
+    private string chestSaveKey;
+
+    private const string ChestOpenedKeyPrefix = "ChestOpened_";
+
     private static readonly int HitHash =
         Animator.StringToHash("Hit");
 
@@ -32,18 +37,21 @@ public class BreakableChest : MonoBehaviour
 
     private void Awake()
     {
-        // 플레이 시작 시 ChestPersistence에 이미 열린 상자인지 확인
-        if (!string.IsNullOrEmpty(chestId) &&
-            ChestPersistence.IsOpened(chestId))
+        animator = GetComponent<Animator>();
+        chestCollider = GetComponent<Collider2D>();
+
+        chestSaveKey = GetChestSaveKey();
+
+        // 이미 열었던 상자인지 확인
+        if (PlayerPrefs.GetInt(chestSaveKey, 0) == 1)
         {
             Destroy(gameObject);
             return;
         }
 
         hitCount = 0;
-
-        animator = GetComponent<Animator>();
-        chestCollider = GetComponent<Collider2D>();
+        isOpening = false;
+        gemsSpawned = false;
     }
 
     public void TakeDamage(int damage)
@@ -87,11 +95,17 @@ public class BreakableChest : MonoBehaviour
 
         isOpening = true;
 
-        // 상자 열림 상태 기록
-        if (!string.IsNullOrEmpty(chestId))
-        {
-            ChestPersistence.MarkOpened(chestId);
-        }
+        // 열린 Chest 기록 저장
+        PlayerPrefs.SetInt(
+            chestSaveKey,
+            1
+        );
+
+        PlayerPrefs.Save();
+
+        Debug.Log(
+            $"Chest 저장 : {chestSaveKey}"
+        );
 
         // 다시 공격되지 않도록
         if (chestCollider != null)
@@ -131,13 +145,15 @@ public class BreakableChest : MonoBehaviour
 
         for (int i = 0; i < gemAmount; i++)
         {
-            Vector3 spawnPosition = transform.position;
+            Vector3 spawnPosition =
+                transform.position;
 
-            GameObject gem = Instantiate(
-                gemPrefab,
-                spawnPosition,
-                Quaternion.identity
-            );
+            GameObject gem =
+                Instantiate(
+                    gemPrefab,
+                    spawnPosition,
+                    Quaternion.identity
+                );
 
             Rigidbody2D gemRb =
                 gem.GetComponent<Rigidbody2D>();
@@ -170,6 +186,26 @@ public class BreakableChest : MonoBehaviour
     public void FinishChest()
     {
         Destroy(gameObject);
+    }
+
+    private string GetChestSaveKey()
+    {
+        string sceneName =
+            SceneManager.GetActiveScene().name;
+
+        if (string.IsNullOrEmpty(chestId))
+        {
+            Debug.LogWarning(
+                $"{gameObject.name} : " +
+                "Chest ID가 비어 있습니다."
+            );
+        }
+
+        return
+            ChestOpenedKeyPrefix +
+            sceneName +
+            "_" +
+            chestId;
     }
 
     public int GetHitCount()

@@ -127,23 +127,17 @@ public class TitleUI : MonoBehaviour
     {
         if (GoldManager.Instance != null)
         {
-            Destroy(
-                GoldManager.Instance.gameObject
-            );
+            GoldManager.Instance.ResetGold();
         }
 
         if (InventoryManager.Instance != null)
         {
-            Destroy(
-                InventoryManager.Instance.gameObject
-            );
+            InventoryManager.Instance.ResetInventory();
         }
 
         if (PlayerUpgradeManager.Instance != null)
         {
-            Destroy(
-                PlayerUpgradeManager.Instance.gameObject
-            );
+            PlayerUpgradeManager.Instance.ResetUpgrades();
         }
     }
 

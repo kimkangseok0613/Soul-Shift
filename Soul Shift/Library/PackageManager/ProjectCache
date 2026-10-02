@@ -7288,10 +7288,12 @@ m_ResolvedPackages:
     - 2.6.6
     - 2.6.7
     - 2.6.8
+    - 2.7.1
     compatible:
     - 2.6.6
     - 2.6.7
     - 2.6.8
+    - 2.7.1
     recommended: 2.6.8
     deprecated: []
   dependencies:

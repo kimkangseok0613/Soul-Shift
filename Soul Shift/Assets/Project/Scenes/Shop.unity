@@ -3000,7 +3000,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2722308959075263353, guid: e2d4219d0a801934894fb2bcccdd8758, type: 3}
       propertyPath: chestId
-      value: Shop1_Chest_01
+      value: Shop_Chest_01
       objectReference: {fileID: 0}
     - target: {fileID: 2722308959075263353, guid: e2d4219d0a801934894fb2bcccdd8758, type: 3}
       propertyPath: gemAmount
@@ -3048,7 +3048,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8236491069635353208, guid: e2d4219d0a801934894fb2bcccdd8758, type: 3}
       propertyPath: m_Name
-      value: Chest
+      value: Shop_Chest_01
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

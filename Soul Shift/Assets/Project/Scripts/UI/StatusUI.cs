@@ -15,7 +15,10 @@ public class StatusUI : MonoBehaviour
     [Header("Gold")]
     [SerializeField] private TextMeshProUGUI goldText;
 
+    private GameObject currentPlayer;
+
     private PlayerHealth playerHealth;
+    private PlayerAttackHitbox playerAttackHitbox;
     private PlayerController playerController;
 
     private void OnEnable()
@@ -26,7 +29,12 @@ public class StatusUI : MonoBehaviour
 
     private void Update()
     {
-        if (playerHealth == null ||
+        GameObject player = GetCurrentPlayer();
+
+        // 플레이어가 새로 생성되었으면 다시 찾기
+        if (player != currentPlayer ||
+            playerHealth == null ||
+            playerAttackHitbox == null ||
             playerController == null)
         {
             FindPlayer();
@@ -35,17 +43,73 @@ public class StatusUI : MonoBehaviour
         UpdateUI();
     }
 
-    private void FindPlayer()
+    // ========================================
+    // 현재 생성된 Player 찾기
+    // ========================================
+    private GameObject GetCurrentPlayer()
     {
-        playerHealth =
+        // RespawnManager에서 현재 Player 가져오기
+        if (RespawnManager.Instance != null)
+        {
+            GameObject player =
+                RespawnManager.Instance.GetCurrentPlayer();
+
+            if (player != null)
+            {
+                return player;
+            }
+        }
+
+        // 혹시 RespawnManager가 아직 Player를 저장하지 못한 경우
+        PlayerHealth health =
             FindFirstObjectByType<PlayerHealth>();
 
-        playerController =
-            FindFirstObjectByType<PlayerController>();
+        if (health != null)
+        {
+            return health.gameObject;
+        }
+
+        return null;
     }
 
+    // ========================================
+    // Player와 관련 컴포넌트 다시 찾기
+    // ========================================
+    private void FindPlayer()
+    {
+        currentPlayer = GetCurrentPlayer();
+
+        if (currentPlayer == null)
+        {
+            playerHealth = null;
+            playerAttackHitbox = null;
+            playerController = null;
+
+            return;
+        }
+
+        // Player 본체
+        playerHealth =
+            currentPlayer.GetComponent<PlayerHealth>();
+
+        playerController =
+            currentPlayer.GetComponent<PlayerController>();
+
+        // Player 자식까지 포함해서 AttackHitbox 찾기
+        playerAttackHitbox =
+            currentPlayer.GetComponentInChildren<PlayerAttackHitbox>(
+                true
+            );
+    }
+
+    // ========================================
+    // UI 업데이트
+    // ========================================
     private void UpdateUI()
     {
+        // --------------------------------
+        // HP
+        // --------------------------------
         if (hpText != null)
         {
             if (playerHealth != null)
@@ -60,13 +124,15 @@ public class StatusUI : MonoBehaviour
             }
         }
 
+        // --------------------------------
+        // Attack
+        // --------------------------------
         if (attackText != null)
         {
-            if (PlayerUpgradeManager.Instance != null)
+            if (playerAttackHitbox != null)
             {
                 attackText.text =
-                    $"atk : " +
-                    $"{PlayerUpgradeManager.Instance.GetCurrentAttack()}";
+                    $"atk : {playerAttackHitbox.GetDamage()}";
             }
             else
             {
@@ -74,6 +140,9 @@ public class StatusUI : MonoBehaviour
             }
         }
 
+        // --------------------------------
+        // Move Speed
+        // --------------------------------
         if (moveSpeedText != null)
         {
             if (playerController != null)
@@ -87,6 +156,9 @@ public class StatusUI : MonoBehaviour
             }
         }
 
+        // --------------------------------
+        // Gold
+        // --------------------------------
         if (goldText != null)
         {
             if (GoldManager.Instance != null)

@@ -1271,7 +1271,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 4841909549340597416, guid: d7a9a2b1d9b1a214399533bf813adb02, type: 3}
       propertyPath: m_Name
-      value: Golem
+      value: Map2_Golem_01
       objectReference: {fileID: 0}
     - target: {fileID: 5523938108829931471, guid: d7a9a2b1d9b1a214399533bf813adb02, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1318,6 +1318,53 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d7a9a2b1d9b1a214399533bf813adb02, type: 3}
+--- !u!1 &838646103
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 838646105}
+  - component: {fileID: 838646104}
+  m_Layer: 0
+  m_Name: EnemyClearManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &838646104
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 838646103}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce292bac79f0b4447aeae5164587f7cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyClearManager
+  leftExit: {fileID: 419854153}
+  rightExit: {fileID: 1850934611}
+  requireAllEnemiesDefeated: 1
+--- !u!4 &838646105
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 838646103}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1.63754, y: 0.51568, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &840452616
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1372,7 +1419,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8236491069635353208, guid: e2d4219d0a801934894fb2bcccdd8758, type: 3}
       propertyPath: m_Name
-      value: Chest (1)
+      value: Map2_Chest_02
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1789,7 +1836,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8236491069635353208, guid: e2d4219d0a801934894fb2bcccdd8758, type: 3}
       propertyPath: m_Name
-      value: Chest
+      value: Map2_Chest_01
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1806,7 +1853,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 4841909549340597416, guid: d7a9a2b1d9b1a214399533bf813adb02, type: 3}
       propertyPath: m_Name
-      value: Golem (1)
+      value: Map2_Golem_02
       objectReference: {fileID: 0}
     - target: {fileID: 5523938108829931471, guid: d7a9a2b1d9b1a214399533bf813adb02, type: 3}
       propertyPath: m_LocalPosition.x
@@ -3614,3 +3661,4 @@ SceneRoots:
   - {fileID: 1934590465}
   - {fileID: 1229410961}
   - {fileID: 840452616}
+  - {fileID: 838646105}

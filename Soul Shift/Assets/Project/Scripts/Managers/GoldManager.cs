@@ -9,6 +9,8 @@ public class GoldManager : MonoBehaviour
 
     private int currentGold;
 
+    private const string GoldKey = "PlayerGold";
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -19,10 +21,14 @@ public class GoldManager : MonoBehaviour
 
         Instance = this;
 
-        // æ¿¿Ã πŸ≤ÓæÓµµ ∞ÒµÂ ¿Ø¡ˆ
         DontDestroyOnLoad(gameObject);
 
-        currentGold = startingGold;
+        // ¿˙¿Âµ» ∞ÒµÂ ∫“∑Øø¿±‚
+        currentGold =
+            PlayerPrefs.GetInt(
+                GoldKey,
+                startingGold
+            );
     }
 
     public void AddGold(int amount)
@@ -32,7 +38,11 @@ public class GoldManager : MonoBehaviour
 
         currentGold += amount;
 
-        Debug.Log($"Gold +{amount} / Current Gold : {currentGold}");
+        SaveGold();
+
+        Debug.Log(
+            $"Gold +{amount} / Current Gold : {currentGold}"
+        );
     }
 
     public bool SpendGold(int amount)
@@ -45,7 +55,11 @@ public class GoldManager : MonoBehaviour
 
         currentGold -= amount;
 
-        Debug.Log($"Gold -{amount} / Current Gold : {currentGold}");
+        SaveGold();
+
+        Debug.Log(
+            $"Gold -{amount} / Current Gold : {currentGold}"
+        );
 
         return true;
     }
@@ -55,10 +69,30 @@ public class GoldManager : MonoBehaviour
         return currentGold;
     }
 
+    // ========================================
+    // ∞ÒµÂ ¿˙¿Â
+    // ========================================
+    private void SaveGold()
+    {
+        PlayerPrefs.SetInt(
+            GoldKey,
+            currentGold
+        );
+
+        PlayerPrefs.Save();
+    }
+
+    // ========================================
+    // ∞ÒµÂ √ ±‚»≠
+    // ========================================
     public void ResetGold()
     {
         currentGold = startingGold;
 
-        Debug.Log($"Gold Reset : {currentGold}");
+        SaveGold();
+
+        Debug.Log(
+            $"Gold Reset : {currentGold}"
+        );
     }
 }
