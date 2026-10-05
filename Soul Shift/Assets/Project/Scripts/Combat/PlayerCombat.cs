@@ -11,12 +11,14 @@ public class PlayerCombat : MonoBehaviour
     [SerializeField] private GameObject attackHitbox;
 
     private Animator animator;
+    private PlayerController playerController;
 
     private bool canAttack = true;
 
     private void Awake()
     {
         animator = GetComponent<Animator>();
+        playerController = GetComponent<PlayerController>();
 
         if (attackHitbox != null)
         {
@@ -26,12 +28,15 @@ public class PlayerCombat : MonoBehaviour
 
     private void Update()
     {
-        // 메뉴가 열려 있으면 공격 입력 무시
-        if (TabMenuUI.IsMenuOpen)
-            return;
-
         if (Keyboard.current == null)
             return;
+
+        // 히트스턴 중에는 공격 입력을 받지 않는다.
+        if (playerController != null &&
+            playerController.IsHitStunned())
+        {
+            return;
+        }
 
         if (Keyboard.current.jKey.wasPressedThisFrame)
         {
@@ -43,6 +48,12 @@ public class PlayerCombat : MonoBehaviour
     {
         if (!canAttack)
             return;
+
+        if (playerController != null &&
+            playerController.IsHitStunned())
+        {
+            return;
+        }
 
         canAttack = false;
 

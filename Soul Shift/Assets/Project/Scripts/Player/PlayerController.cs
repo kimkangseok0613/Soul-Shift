@@ -26,6 +26,9 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float dashDuration = 0.15f;
     [SerializeField] private float dashCooldown = 0.8f;
 
+    [Header("Dash Collision Fix")]
+    [SerializeField] private float dashSeparationPadding = 0.02f;
+
     [Header("Screen Bounds")]
     [SerializeField] private bool useScreenBounds = true;
     [SerializeField] private float screenPadding = 0f;
@@ -308,6 +311,7 @@ public class PlayerController : MonoBehaviour
             );
         }
 
+        // 대쉬 중에는 적과 겹칠 수 있도록 충돌 무시
         SetEnemyCollision(false);
 
         rb.linearVelocity =
@@ -359,6 +363,11 @@ public class PlayerController : MonoBehaviour
         if (!isDashing)
             return;
 
+        // =========================================
+        // 대쉬 종료 전에 적과 겹쳐 있는지 확인
+        // =========================================
+        ResolveEnemyOverlapAfterDash();
+
         isDashing = false;
 
         rb.linearVelocity =
@@ -367,6 +376,7 @@ public class PlayerController : MonoBehaviour
                 rb.linearVelocity.y
             );
 
+        // 겹침을 해결한 뒤 충돌 복구
         SetEnemyCollision(true);
 
         if (animator != null)
@@ -375,6 +385,93 @@ public class PlayerController : MonoBehaviour
                 "IsDashing",
                 false
             );
+        }
+    }
+
+    // =========================================
+    // 대쉬 종료 시 적과 겹침 방지
+    // =========================================
+    private void ResolveEnemyOverlapAfterDash()
+    {
+        if (playerCollider == null)
+            return;
+
+        int enemyLayer =
+            LayerMask.NameToLayer("Enemy");
+
+        if (enemyLayer == -1)
+            return;
+
+        int enemyLayerMask =
+            1 << enemyLayer;
+
+        // 여러 적과 동시에 겹치는 경우를 대비해서
+        // 최대 몇 번까지 반복해서 분리
+        for (int i = 0; i < 4; i++)
+        {
+            Collider2D[] enemies =
+                Physics2D.OverlapBoxAll(
+                    playerCollider.bounds.center,
+                    playerCollider.bounds.size,
+                    0f,
+                    enemyLayerMask
+                );
+
+            bool foundOverlap = false;
+
+            foreach (Collider2D enemy in enemies)
+            {
+                if (enemy == null)
+                    continue;
+
+                if (enemy == playerCollider)
+                    continue;
+
+                if (!enemy.bounds.Intersects(
+                        playerCollider.bounds))
+                    continue;
+
+                foundOverlap = true;
+
+                Bounds playerBounds =
+                    playerCollider.bounds;
+
+                Bounds enemyBounds =
+                    enemy.bounds;
+
+                float moveX;
+
+                // 오른쪽으로 대쉬했다면
+                // 적의 오른쪽으로 분리
+                if (dashDirection.x > 0f)
+                {
+                    moveX =
+                        enemyBounds.max.x -
+                        playerBounds.min.x +
+                        dashSeparationPadding;
+                }
+                else
+                {
+                    // 왼쪽으로 대쉬했다면
+                    // 적의 왼쪽으로 분리
+                    moveX =
+                        enemyBounds.min.x -
+                        playerBounds.max.x -
+                        dashSeparationPadding;
+                }
+
+                rb.position =
+                    new Vector2(
+                        rb.position.x + moveX,
+                        rb.position.y
+                    );
+
+                // Collider bounds 즉시 갱신
+                Physics2D.SyncTransforms();
+            }
+
+            if (!foundOverlap)
+                break;
         }
     }
 
@@ -436,6 +533,18 @@ public class PlayerController : MonoBehaviour
                     : 1f;
         }
 
+        if (duration <= 0f)
+        {
+            duration =
+                defaultHitStunDuration;
+        }
+
+        if (knockbackForce <= 0f)
+        {
+            knockbackForce =
+                defaultKnockbackForce;
+        }
+
         hitStunTimer = duration;
 
         rb.linearVelocity =
@@ -443,6 +552,15 @@ public class PlayerController : MonoBehaviour
                 direction * knockbackForce,
                 rb.linearVelocity.y
             );
+    }
+
+    // =========================================================
+    // 피격 경직 상태
+    // =========================================================
+
+    public bool IsHitStunned()
+    {
+        return hitStunTimer > 0f;
     }
 
     // =========================================================

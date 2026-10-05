@@ -6,6 +6,15 @@ public class GameOverUI : MonoBehaviour
     [Header("UI")]
     [SerializeField] private GameObject gameOverPanel;
 
+    private const string PlayerCurrentHitCountKey =
+        "PlayerCurrentHitCount";
+
+    private const string BossSceneName =
+        "Boss";
+
+    private const string BossReturnSceneName =
+        "Shop";
+
     private bool isGameOver;
 
     private void Awake()
@@ -17,7 +26,7 @@ public class GameOverUI : MonoBehaviour
         else
         {
             Debug.LogWarning(
-                "GameOverPanel이 연결되어 있지 않습니다."
+                "GameOverPanel이 연결되지 않았습니다."
             );
         }
     }
@@ -29,7 +38,9 @@ public class GameOverUI : MonoBehaviour
 
         isGameOver = true;
 
-        Debug.Log("Show Game Over");
+        Debug.Log(
+            "Show Game Over"
+        );
 
         if (gameOverPanel != null)
         {
@@ -39,40 +50,70 @@ public class GameOverUI : MonoBehaviour
 
     public void Retry()
     {
-        // 게임 오버 상태 해제
-        isGameOver = false;
+        // =====================================================
+        // 현재 Scene 확인
+        // =====================================================
 
-        // 게임 오버 UI 닫기
+        string currentSceneName =
+            SceneManager.GetActiveScene().name;
+
+        // =====================================================
+        // Retry 시 플레이어 HP 풀피
+        // =====================================================
+
+        PlayerPrefs.DeleteKey(
+            PlayerCurrentHitCountKey
+        );
+
+        PlayerPrefs.Save();
+
+        Debug.Log(
+            "Retry : 저장된 현재 HP 삭제 -> 풀피로 시작"
+        );
+
+        // =====================================================
+        // Game Over UI 닫기
+        // =====================================================
+
         if (gameOverPanel != null)
         {
             gameOverPanel.SetActive(false);
         }
 
-        // 현재 씬 확인
-        string currentSceneName =
-            SceneManager.GetActiveScene().name;
+        isGameOver = false;
+
+        // 시간 정지 상태가 남아있지 않도록 복구
+        Time.timeScale = 1f;
 
         // =====================================================
-        // Boss 씬
+        // Boss Scene인 경우
         // =====================================================
 
-        if (currentSceneName == "Boss")
+        if (currentSceneName == BossSceneName)
         {
+            if (RespawnManager.Instance != null)
+            {
+                // Shop의 오른쪽에서
+                // Boss 방향으로 들어왔던 것이므로
+                // Boss에서 Shop로 돌아오면
+                // Shop의 오른쪽 Spawn Point 사용
+                RespawnManager.NextSpawnSide =
+                    RespawnManager.SpawnSide.Right;
+            }
+
             Debug.Log(
-                "Boss 씬 Retry : Boss 씬 다시 로드"
+                "Boss Retry : Shop으로 이동"
             );
 
-            Time.timeScale = 1f;
-
             SceneManager.LoadScene(
-                currentSceneName
+                BossReturnSceneName
             );
 
             return;
         }
 
         // =====================================================
-        // 일반 씬
+        // 일반 Scene Retry
         // =====================================================
 
         if (RespawnManager.Instance == null)
@@ -83,8 +124,6 @@ public class GameOverUI : MonoBehaviour
 
             return;
         }
-
-        Time.timeScale = 1f;
 
         RespawnManager.Instance.RespawnPlayer();
     }

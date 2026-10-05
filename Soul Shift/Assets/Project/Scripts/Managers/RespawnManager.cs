@@ -64,6 +64,45 @@ public class RespawnManager : MonoBehaviour
     }
 
     // =========================================================
+    // Game Exit
+    // =========================================================
+
+    private void OnApplicationQuit()
+    {
+        if (currentPlayer == null)
+        {
+            return;
+        }
+
+        // --------------------------------
+        // 현재 HP 저장
+        // --------------------------------
+        PlayerHealth playerHealth =
+            currentPlayer.GetComponent<PlayerHealth>();
+
+        if (playerHealth != null &&
+            !playerHealth.IsDead())
+        {
+            playerHealth.SaveHealthForSceneChange();
+
+            Debug.Log(
+                $"게임 종료 - HP 저장 : " +
+                $"{playerHealth.GetRemainingHits()} / " +
+                $"{playerHealth.GetMaxHitCount()}"
+            );
+        }
+
+        // --------------------------------
+        // 현재 위치 + 씬 저장
+        // --------------------------------
+        SaveCurrentPlayerPosition();
+
+        Debug.Log(
+            "게임 종료 - 현재 위치 및 HP 저장 완료"
+        );
+    }
+
+    // =========================================================
     // Player 생성
     // =========================================================
 
@@ -98,7 +137,7 @@ public class RespawnManager : MonoBehaviour
                 $"{savedPosition}"
             );
 
-            // 저장 위치는 이번 한 번만 사용
+            // 저장 위치는 한 번만 사용
             UseSavedPositionForResume = false;
 
             // 일반 씬 이동용 SpawnSide 초기화
@@ -129,7 +168,7 @@ public class RespawnManager : MonoBehaviour
             selectedSpawnPoint.rotation
         );
 
-        // 씬에 들어온 방향에 따라 보는 방향 설정
+        // 들어온 방향에 따라 바라보는 방향 설정
         SetPlayerFacingDirection();
 
         Debug.Log(
@@ -347,7 +386,7 @@ public class RespawnManager : MonoBehaviour
     }
 
     // =========================================================
-    // 저장 위치 불러오기
+    // 저장된 위치 불러오기
     // =========================================================
 
     private Vector3 LoadSavedPosition()
@@ -378,7 +417,7 @@ public class RespawnManager : MonoBehaviour
     }
 
     // =========================================================
-    // Title에서 저장 위치 복귀 준비
+    // Title에서 저장 위치 복구 준비
     // =========================================================
 
     public static void PrepareResumePosition()

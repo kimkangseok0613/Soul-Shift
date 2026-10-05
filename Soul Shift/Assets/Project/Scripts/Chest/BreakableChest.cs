@@ -17,6 +17,11 @@ public class BreakableChest : MonoBehaviour
     [SerializeField] private float launchForceX = 1.5f;
     [SerializeField] private float launchForceY = 3f;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip chestHitSound;
+    [SerializeField] private AudioClip chestOpenSound;
+
     private int hitCount;
 
     private Animator animator;
@@ -39,6 +44,13 @@ public class BreakableChest : MonoBehaviour
     {
         animator = GetComponent<Animator>();
         chestCollider = GetComponent<Collider2D>();
+
+        // AudioSource가 Inspector에 연결되지 않았다면
+        // 같은 오브젝트에서 자동으로 찾음
+        if (audioSource == null)
+        {
+            audioSource = GetComponent<AudioSource>();
+        }
 
         chestSaveKey = GetChestSaveKey();
 
@@ -76,6 +88,7 @@ public class BreakableChest : MonoBehaviour
         }
 
         // 1~2번째 공격
+        PlayHitSound();
         PlayHitAnimation();
     }
 
@@ -88,12 +101,37 @@ public class BreakableChest : MonoBehaviour
         animator.SetTrigger(HitHash);
     }
 
+    private void PlayHitSound()
+    {
+        if (audioSource == null)
+            return;
+
+        if (chestHitSound == null)
+            return;
+
+        audioSource.PlayOneShot(chestHitSound);
+    }
+
+    private void PlayOpenSound()
+    {
+        if (audioSource == null)
+            return;
+
+        if (chestOpenSound == null)
+            return;
+
+        audioSource.PlayOneShot(chestOpenSound);
+    }
+
     private void OpenChest()
     {
         if (isOpening)
             return;
 
         isOpening = true;
+
+        // Chest Open 사운드
+        PlayOpenSound();
 
         // 열린 Chest 기록 저장
         PlayerPrefs.SetInt(
