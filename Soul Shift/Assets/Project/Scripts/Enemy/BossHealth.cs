@@ -9,6 +9,12 @@ public class BossHealth : MonoBehaviour
     [Header("Hit Effect")]
     [SerializeField] private float hitFlashDuration = 0.08f;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip hitSound;
+    [SerializeField] private AudioClip armorBreakSound;
+    [SerializeField] private AudioClip deathSound;
+
     private int currentHp;
 
     private bool armorBroken;
@@ -20,7 +26,8 @@ public class BossHealth : MonoBehaviour
 
     private Coroutine hitFlashCoroutine;
 
-    private const string BossDeadKey = "BossDefeated";
+    private const string BossDeadKey =
+        "BossDefeated";
 
     private void Awake()
     {
@@ -34,27 +41,39 @@ public class BossHealth : MonoBehaviour
             GetComponent<SpriteRenderer>();
 
         // BossHealth가 부모에 있고
-        // SpriteRenderer가 자식에 있는 경우도 대응
+        // SpriteRenderer가 자식에 있는 경우
         if (spriteRenderer == null)
         {
             spriteRenderer =
                 GetComponentInChildren<SpriteRenderer>();
         }
 
-        currentHp = maxHp;
+        if (audioSource == null)
+        {
+            audioSource =
+                GetComponent<AudioSource>();
+        }
 
-        armorBroken = false;
-        isDead = false;
+        currentHp =
+            maxHp;
+
+        armorBroken =
+            false;
+
+        isDead =
+            false;
 
         // --------------------------------
         // 이전에 보스를 처치했는지 확인
         // --------------------------------
-        if (PlayerPrefs.GetInt(BossDeadKey, 0) == 1)
+        if (PlayerPrefs.GetInt(
+                BossDeadKey,
+                0) == 1)
         {
             isDead = true;
+
             currentHp = 0;
 
-            // 보스 사망 처리를 다시 호출
             if (bossController != null)
             {
                 bossController.OnDeath();
@@ -65,6 +84,9 @@ public class BossHealth : MonoBehaviour
             return;
         }
 
+        // --------------------------------
+        // 시작 시 갑옷 상태
+        // --------------------------------
         if (animator != null)
         {
             animator.SetBool(
@@ -99,12 +121,15 @@ public class BossHealth : MonoBehaviour
         );
 
         // =====================================================
-        // 죽지 않았다면 빨간색 피격 효과
+        // 사망하지 않았다면 피격 처리
         // =====================================================
 
         if (currentHp > 0)
         {
             StartHitFlash();
+
+            // 일반 피격 사운드
+            PlaySound(hitSound);
         }
 
         // =====================================================
@@ -126,6 +151,7 @@ public class BossHealth : MonoBehaviour
             currentHp <= maxHp * 0.5f)
         {
             BreakArmor();
+
             return;
         }
 
@@ -139,7 +165,9 @@ public class BossHealth : MonoBehaviour
         }
         else if (animator != null)
         {
-            animator.SetTrigger("Hit");
+            animator.SetTrigger(
+                "Hit"
+            );
         }
     }
 
@@ -154,15 +182,18 @@ public class BossHealth : MonoBehaviour
 
         if (hitFlashCoroutine != null)
         {
-            StopCoroutine(hitFlashCoroutine);
+            StopCoroutine(
+                hitFlashCoroutine
+            );
 
-            // 이전 효과가 끝나기 전에 다시 맞으면
-            // 원래 색상으로 먼저 복구
-            spriteRenderer.color = Color.white;
+            spriteRenderer.color =
+                Color.white;
         }
 
         hitFlashCoroutine =
-            StartCoroutine(HitFlash());
+            StartCoroutine(
+                HitFlash()
+            );
     }
 
     private IEnumerator HitFlash()
@@ -170,7 +201,6 @@ public class BossHealth : MonoBehaviour
         Color originalColor =
             spriteRenderer.color;
 
-        // 빨간색
         spriteRenderer.color =
             Color.red;
 
@@ -184,7 +214,8 @@ public class BossHealth : MonoBehaviour
                 originalColor;
         }
 
-        hitFlashCoroutine = null;
+        hitFlashCoroutine =
+            null;
     }
 
     // =========================================================
@@ -196,8 +227,19 @@ public class BossHealth : MonoBehaviour
         if (armorBroken)
             return;
 
-        armorBroken = true;
+        armorBroken =
+            true;
 
+        Debug.Log(
+            "Boss Armor Break!"
+        );
+
+        // 갑옷 파괴 사운드
+        PlaySound(
+            armorBreakSound
+        );
+
+        // Animator에 갑옷 파괴 상태 전달
         if (animator != null)
         {
             animator.SetBool(
@@ -206,10 +248,8 @@ public class BossHealth : MonoBehaviour
             );
         }
 
-        Debug.Log(
-            "Boss Armor Break!"
-        );
-
+        // BossController에서
+        // ArmorBreak 애니메이션 실행
         if (bossController != null)
         {
             bossController.OnArmorBreak();
@@ -231,27 +271,34 @@ public class BossHealth : MonoBehaviour
         if (isDead)
             return;
 
-        isDead = true;
+        isDead =
+            true;
 
-        // 피격 플래시가 실행 중이면 종료
+        // 피격 플래시 종료
         if (hitFlashCoroutine != null)
         {
-            StopCoroutine(hitFlashCoroutine);
-            hitFlashCoroutine = null;
+            StopCoroutine(
+                hitFlashCoroutine
+            );
+
+            hitFlashCoroutine =
+                null;
         }
 
         if (spriteRenderer != null)
         {
-            spriteRenderer.color = Color.white;
+            spriteRenderer.color =
+                Color.white;
         }
 
         Debug.Log(
             "Boss HP 0"
         );
 
-        // --------------------------------
+        // =====================================================
         // 보스 처치 상태 저장
-        // --------------------------------
+        // =====================================================
+
         PlayerPrefs.SetInt(
             BossDeadKey,
             1
@@ -259,9 +306,22 @@ public class BossHealth : MonoBehaviour
 
         PlayerPrefs.Save();
 
-        // --------------------------------
+        // =====================================================
+        // 사망 사운드
+        // =====================================================
+
+        PlaySound(
+            deathSound
+        );
+
+        // =====================================================
         // 보스 사망 처리
-        // --------------------------------
+        // =====================================================
+
+        if (BGMManager.Instance != null)
+        {
+            BGMManager.Instance.BossDefeated();
+        }
         if (bossController != null)
         {
             bossController.OnDeath();
@@ -272,6 +332,25 @@ public class BossHealth : MonoBehaviour
                 "Death"
             );
         }
+    }
+
+    // =========================================================
+    // Audio
+    // =========================================================
+
+    private void PlaySound(
+        AudioClip clip
+    )
+    {
+        if (audioSource == null)
+            return;
+
+        if (clip == null)
+            return;
+
+        audioSource.PlayOneShot(
+            clip
+        );
     }
 
     // =========================================================

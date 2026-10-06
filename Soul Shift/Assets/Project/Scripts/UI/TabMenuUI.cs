@@ -16,11 +16,22 @@ public class TabMenuUI : MonoBehaviour
 
     [SerializeField] private GameObject inventoryPanel;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip openMenuSound;
+    [SerializeField] private AudioClip closeMenuSound;
+
     private void Awake()
     {
         IsMenuOpen = false;
 
-        CloseMenu();
+        if (audioSource == null)
+        {
+            audioSource =
+                GetComponent<AudioSource>();
+        }
+
+        CloseMenu(false);
     }
 
     private void Update()
@@ -34,19 +45,28 @@ public class TabMenuUI : MonoBehaviour
         }
     }
 
+    // =========================================================
+    // Menu
+    // =========================================================
+
     public void ToggleMenu()
     {
         if (IsMenuOpen)
         {
-            CloseMenu();
+            CloseMenu(true);
         }
         else
         {
-            OpenMenu();
+            OpenMenu(true);
         }
     }
 
     public void OpenMenu()
+    {
+        OpenMenu(true);
+    }
+
+    private void OpenMenu(bool playSound)
     {
         IsMenuOpen = true;
 
@@ -56,9 +76,19 @@ public class TabMenuUI : MonoBehaviour
         ShowStatus();
 
         Time.timeScale = 0f;
+
+        if (playSound)
+        {
+            PlaySound(openMenuSound);
+        }
     }
 
     public void CloseMenu()
+    {
+        CloseMenu(true);
+    }
+
+    private void CloseMenu(bool playSound)
     {
         IsMenuOpen = false;
 
@@ -66,7 +96,31 @@ public class TabMenuUI : MonoBehaviour
             menuPanel.SetActive(false);
 
         Time.timeScale = 1f;
+
+        if (playSound)
+        {
+            PlaySound(closeMenuSound);
+        }
     }
+
+    // =========================================================
+    // Audio
+    // =========================================================
+
+    private void PlaySound(AudioClip clip)
+    {
+        if (audioSource == null)
+            return;
+
+        if (clip == null)
+            return;
+
+        audioSource.PlayOneShot(clip);
+    }
+
+    // =========================================================
+    // Tab Panels
+    // =========================================================
 
     public void ShowStatus()
     {

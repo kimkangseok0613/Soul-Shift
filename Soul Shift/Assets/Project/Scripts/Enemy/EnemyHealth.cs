@@ -16,6 +16,11 @@ public class EnemyHealth : MonoBehaviour
     [Header("Death")]
     [SerializeField] private float deathDelay = 0.8f;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip hitSound;
+    [SerializeField] private AudioClip deathSound;
+
     private int currentHealth;
 
     private SpriteRenderer spriteRenderer;
@@ -50,6 +55,11 @@ public class EnemyHealth : MonoBehaviour
 
         rb =
             GetComponent<Rigidbody2D>();
+
+        if (audioSource == null)
+        {
+            audioSource = GetComponent<AudioSource>();
+        }
 
         enemySaveKey =
             GetEnemySaveKey();
@@ -86,6 +96,9 @@ public class EnemyHealth : MonoBehaviour
             Die();
             return;
         }
+
+        // 피격 사운드
+        PlayHitSound();
 
         // 피격 처리
         if (enemyController != null)
@@ -144,6 +157,9 @@ public class EnemyHealth : MonoBehaviour
         Debug.Log(
             $"{gameObject.name} Enemy Dead"
         );
+
+        // 사망 사운드
+        PlayDeathSound();
 
         // --------------------------------
         // 1. 적 사망 상태 저장
@@ -250,6 +266,32 @@ public class EnemyHealth : MonoBehaviour
         );
 
         Destroy(gameObject);
+    }
+
+    // =========================================================
+    // Audio
+    // =========================================================
+
+    private void PlayHitSound()
+    {
+        if (audioSource == null)
+            return;
+
+        if (hitSound == null)
+            return;
+
+        audioSource.PlayOneShot(hitSound);
+    }
+
+    private void PlayDeathSound()
+    {
+        if (audioSource == null)
+            return;
+
+        if (deathSound == null)
+            return;
+
+        audioSource.PlayOneShot(deathSound);
     }
 
     private string GetEnemySaveKey()

@@ -10,6 +10,12 @@ public class PlayerCombat : MonoBehaviour
     [SerializeField] private Transform attackPoint;
     [SerializeField] private GameObject attackHitbox;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip attack1Sound;
+    [SerializeField] private AudioClip attack2Sound;
+    [SerializeField] private AudioClip attack3Sound;
+
     private Animator animator;
     private PlayerController playerController;
 
@@ -19,6 +25,11 @@ public class PlayerCombat : MonoBehaviour
     {
         animator = GetComponent<Animator>();
         playerController = GetComponent<PlayerController>();
+
+        if (audioSource == null)
+        {
+            audioSource = GetComponent<AudioSource>();
+        }
 
         if (attackHitbox != null)
         {
@@ -31,7 +42,7 @@ public class PlayerCombat : MonoBehaviour
         if (Keyboard.current == null)
             return;
 
-        // 히트스턴 중에는 공격 입력을 받지 않는다.
+        // 스턴 중에는 공격 입력을 받지 않는다.
         if (playerController != null &&
             playerController.IsHitStunned())
         {
@@ -76,6 +87,41 @@ public class PlayerCombat : MonoBehaviour
     {
         canAttack = true;
     }
+
+    // =========================================================
+    // Attack Sound
+    // Animation Event에서 호출
+    // =========================================================
+
+    public void PlayAttack1Sound()
+    {
+        PlaySound(attack1Sound);
+    }
+
+    public void PlayAttack2Sound()
+    {
+        PlaySound(attack2Sound);
+    }
+
+    public void PlayAttack3Sound()
+    {
+        PlaySound(attack3Sound);
+    }
+
+    private void PlaySound(AudioClip clip)
+    {
+        if (audioSource == null)
+            return;
+
+        if (clip == null)
+            return;
+
+        audioSource.PlayOneShot(clip);
+    }
+
+    // =========================================================
+    // Attack Hitbox
+    // =========================================================
 
     public void EnableAttackHitbox()
     {

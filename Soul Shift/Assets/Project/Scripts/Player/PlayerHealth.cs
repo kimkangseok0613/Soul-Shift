@@ -16,6 +16,11 @@ public class PlayerHealth : MonoBehaviour
     [Header("Invincible")]
     [SerializeField] private float invincibleTime = 0.3f;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip hitSound;
+    [SerializeField] private AudioClip deathSound;
+
     private const string SavedHealthKey = "PlayerCurrentHitCount";
 
     private int maxHitCount;
@@ -44,6 +49,11 @@ public class PlayerHealth : MonoBehaviour
         playerCombat = GetComponent<PlayerCombat>();
         playerController = GetComponent<PlayerController>();
         rb = GetComponent<Rigidbody2D>();
+
+        if (audioSource == null)
+        {
+            audioSource = GetComponent<AudioSource>();
+        }
 
         gameOverUI =
             FindFirstObjectByType<GameOverUI>();
@@ -157,6 +167,9 @@ public class PlayerHealth : MonoBehaviour
             );
         }
 
+        // 피격 사운드
+        PlayHitSound();
+
         // 마지막 하트
         if (currentHitCount >= maxHitCount)
         {
@@ -217,6 +230,9 @@ public class PlayerHealth : MonoBehaviour
         isDead = true;
 
         Debug.Log("Player Dead");
+
+        // 사망 사운드
+        PlayDeathSound();
 
         // 이동 정지
         if (rb != null)
@@ -293,6 +309,28 @@ public class PlayerHealth : MonoBehaviour
             // 즉시 Animator 적용
             animator.Update(0f);
         }
+    }
+
+    private void PlayHitSound()
+    {
+        if (audioSource == null)
+            return;
+
+        if (hitSound == null)
+            return;
+
+        audioSource.PlayOneShot(hitSound);
+    }
+
+    private void PlayDeathSound()
+    {
+        if (audioSource == null)
+            return;
+
+        if (deathSound == null)
+            return;
+
+        audioSource.PlayOneShot(deathSound);
     }
 
     // Player_Death 애니메이션 마지막 프레임
@@ -442,9 +480,7 @@ public class PlayerHealth : MonoBehaviour
             SavedHealthKey
         ))
         {
-            // 저장된 HP가 없으면 풀피
             currentHitCount = 0;
-
             return;
         }
 

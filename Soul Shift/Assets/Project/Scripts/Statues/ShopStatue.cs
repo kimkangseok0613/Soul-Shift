@@ -16,7 +16,20 @@ public class ShopStatue : MonoBehaviour
     [Header("Upgrade")]
     [SerializeField] private int upgradeCost = 50;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip upgradeSuccessSound;
+
     private bool playerInRange;
+
+    private void Awake()
+    {
+        if (audioSource == null)
+        {
+            audioSource =
+                GetComponent<AudioSource>();
+        }
+    }
 
     private void Update()
     {
@@ -78,11 +91,34 @@ public class ShopStatue : MonoBehaviour
 
         if (success)
         {
+            PlayUpgradeSuccessSound();
+
             Debug.Log(
                 $"{GetStatueName()} 강화 완료"
             );
         }
     }
+
+    // =========================================================
+    // Audio
+    // =========================================================
+
+    private void PlayUpgradeSuccessSound()
+    {
+        if (audioSource == null)
+            return;
+
+        if (upgradeSuccessSound == null)
+            return;
+
+        audioSource.PlayOneShot(
+            upgradeSuccessSound
+        );
+    }
+
+    // =========================================================
+    // Convert
+    // =========================================================
 
     private PlayerUpgradeManager.UpgradeType
         ConvertStatueType()
@@ -102,6 +138,10 @@ public class ShopStatue : MonoBehaviour
         return PlayerUpgradeManager.UpgradeType.Attack;
     }
 
+    // =========================================================
+    // Statue Name
+    // =========================================================
+
     private string GetStatueName()
     {
         switch (statueType)
@@ -118,6 +158,10 @@ public class ShopStatue : MonoBehaviour
 
         return "알 수 없음";
     }
+
+    // =========================================================
+    // Get
+    // =========================================================
 
     public StatueType GetStatueType()
     {

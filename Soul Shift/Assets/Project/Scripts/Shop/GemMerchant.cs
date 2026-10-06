@@ -13,6 +13,10 @@ public class GemMerchant : MonoBehaviour
     [Header("Player Detection")]
     [SerializeField] private string playerTag = "Player";
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip gemSellSound;
+
     private bool playerInRange;
 
     private void Awake()
@@ -20,6 +24,12 @@ public class GemMerchant : MonoBehaviour
         if (interactionText != null)
         {
             interactionText.gameObject.SetActive(false);
+        }
+
+        if (audioSource == null)
+        {
+            audioSource =
+                GetComponent<AudioSource>();
         }
     }
 
@@ -117,11 +127,31 @@ public class GemMerchant : MonoBehaviour
             return;
         }
 
-        GoldManager.Instance.AddGold(gemSellPrice);
+        GoldManager.Instance.AddGold(
+            gemSellPrice
+        );
+
+        // 보석 판매 성공 사운드
+        PlaySound(gemSellSound);
 
         Debug.Log(
             $"보석 판매 : Gem -1 / Gold +{gemSellPrice}"
         );
+    }
+
+    // =========================================================
+    // Audio
+    // =========================================================
+
+    private void PlaySound(AudioClip clip)
+    {
+        if (audioSource == null)
+            return;
+
+        if (clip == null)
+            return;
+
+        audioSource.PlayOneShot(clip);
     }
 
     // =========================================================

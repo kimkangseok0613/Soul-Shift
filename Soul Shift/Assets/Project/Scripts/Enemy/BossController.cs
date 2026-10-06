@@ -25,6 +25,12 @@ public class BossController : MonoBehaviour
     [SerializeField] private float hitFailsafeTime = 2f;
     [SerializeField] private float armorBreakFailsafeTime = 2f;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip armorAttackSound;
+    [SerializeField] private AudioClip UnAromrAttackSound1;
+    [SerializeField] private AudioClip UnAromrAttackSound2;
+
     private Rigidbody2D rb;
     private Animator animator;
     private Collider2D bodyCollider;
@@ -37,7 +43,8 @@ public class BossController : MonoBehaviour
     private bool isActionLocked;
     private bool isDead;
 
-    private ActionType currentAction = ActionType.None;
+    private ActionType currentAction =
+        ActionType.None;
 
     private Vector3 originalScale;
 
@@ -45,17 +52,32 @@ public class BossController : MonoBehaviour
 
     private void Awake()
     {
-        rb = GetComponent<Rigidbody2D>();
-        animator = GetComponent<Animator>();
-        bodyCollider = GetComponent<Collider2D>();
+        rb =
+            GetComponent<Rigidbody2D>();
 
-        originalScale = transform.localScale;
+        animator =
+            GetComponent<Animator>();
 
-        // 보스의 현재 높이를 고정
-        fixedY = transform.position.y;
+        bodyCollider =
+            GetComponent<Collider2D>();
+
+        if (audioSource == null)
+        {
+            audioSource =
+                GetComponent<AudioSource>();
+        }
+
+        originalScale =
+            transform.localScale;
+
+        // 보스의 현재 높이 고정
+        fixedY =
+            transform.position.y;
 
         // Kinematic으로 사용
-        rb.bodyType = RigidbodyType2D.Kinematic;
+        rb.bodyType =
+            RigidbodyType2D.Kinematic;
+
         rb.gravityScale = 0f;
 
         rb.constraints =
@@ -73,8 +95,15 @@ public class BossController : MonoBehaviour
 
         if (animator != null)
         {
-            animator.SetBool("Run", false);
-            animator.SetBool("ArmorBroken", false);
+            animator.SetBool(
+                "Run",
+                false
+            );
+
+            animator.SetBool(
+                "ArmorBroken",
+                false
+            );
         }
     }
 
@@ -86,6 +115,7 @@ public class BossController : MonoBehaviour
         if (TabMenuUI.IsMenuOpen)
         {
             StopHorizontalMovement();
+
             SetRunAnimation(false);
 
             UpdateActionTimer();
@@ -95,12 +125,19 @@ public class BossController : MonoBehaviour
 
         if (attackCooldownTimer > 0f)
         {
-            attackCooldownTimer -= Time.deltaTime;
+            attackCooldownTimer -=
+                Time.deltaTime;
+
+            if (attackCooldownTimer < 0f)
+            {
+                attackCooldownTimer = 0f;
+            }
         }
 
         if (isActionLocked)
         {
             StopHorizontalMovement();
+
             SetRunAnimation(false);
 
             UpdateActionTimer();
@@ -132,15 +169,19 @@ public class BossController : MonoBehaviour
             distanceY > maxVerticalDifference)
         {
             StopHorizontalMovement();
+
             SetRunAnimation(false);
+
             return;
         }
 
         FacePlayer();
 
+        // 공격 범위
         if (distanceX <= attackRange)
         {
             StopHorizontalMovement();
+
             SetRunAnimation(false);
 
             if (attackCooldownTimer <= 0f)
@@ -157,21 +198,27 @@ public class BossController : MonoBehaviour
         if (isDead)
             return;
 
-        // 보스의 Y 위치는 항상 고정
-        Vector2 currentPosition = rb.position;
+        // 보스 Y 위치 고정
+        Vector2 currentPosition =
+            rb.position;
 
         if (!Mathf.Approximately(
                 currentPosition.y,
                 fixedY))
         {
-            currentPosition.y = fixedY;
-            rb.MovePosition(currentPosition);
+            currentPosition.y =
+                fixedY;
+
+            rb.MovePosition(
+                currentPosition
+            );
         }
 
         if (isActionLocked ||
             TabMenuUI.IsMenuOpen)
         {
             StopHorizontalMovement();
+
             return;
         }
 
@@ -194,6 +241,7 @@ public class BossController : MonoBehaviour
             distanceY > maxVerticalDifference)
         {
             StopHorizontalMovement();
+
             return;
         }
 
@@ -214,11 +262,14 @@ public class BossController : MonoBehaviour
     private void FindPlayer()
     {
         GameObject playerObject =
-            GameObject.FindGameObjectWithTag("Player");
+            GameObject.FindGameObjectWithTag(
+                "Player"
+            );
 
         if (playerObject != null)
         {
-            player = playerObject.transform;
+            player =
+                playerObject.transform;
         }
     }
 
@@ -244,9 +295,12 @@ public class BossController : MonoBehaviour
             moveSpeed *
             Time.fixedDeltaTime;
 
-        targetPosition.y = fixedY;
+        targetPosition.y =
+            fixedY;
 
-        rb.MovePosition(targetPosition);
+        rb.MovePosition(
+            targetPosition
+        );
 
         SetRunAnimation(true);
     }
@@ -259,11 +313,15 @@ public class BossController : MonoBehaviour
         Vector2 currentPosition =
             rb.position;
 
-        currentPosition.y = fixedY;
+        currentPosition.y =
+            fixedY;
 
-        rb.MovePosition(currentPosition);
+        rb.MovePosition(
+            currentPosition
+        );
 
-        rb.linearVelocity = Vector2.zero;
+        rb.linearVelocity =
+            Vector2.zero;
 
         SetRunAnimation(false);
     }
@@ -282,7 +340,9 @@ public class BossController : MonoBehaviour
         {
             transform.localScale =
                 new Vector3(
-                    -Mathf.Abs(originalScale.x),
+                    -Mathf.Abs(
+                        originalScale.x
+                    ),
                     originalScale.y,
                     originalScale.z
                 );
@@ -291,7 +351,9 @@ public class BossController : MonoBehaviour
         {
             transform.localScale =
                 new Vector3(
-                    Mathf.Abs(originalScale.x),
+                    Mathf.Abs(
+                        originalScale.x
+                    ),
                     originalScale.y,
                     originalScale.z
                 );
@@ -302,12 +364,17 @@ public class BossController : MonoBehaviour
     // Run
     // =========================================================
 
-    private void SetRunAnimation(bool value)
+    private void SetRunAnimation(
+        bool value
+    )
     {
         if (animator == null)
             return;
 
-        animator.SetBool("Run", value);
+        animator.SetBool(
+            "Run",
+            value
+        );
     }
 
     // =========================================================
@@ -338,57 +405,150 @@ public class BossController : MonoBehaviour
         if (animator == null)
             return;
 
-        animator.ResetTrigger("Attack");
-        animator.ResetTrigger("Attack2");
-        animator.ResetTrigger("Hit");
-        animator.ResetTrigger("ArmorBreak");
+        animator.ResetTrigger(
+            "Attack"
+        );
+
+        animator.ResetTrigger(
+            "Attack2"
+        );
+
+        animator.ResetTrigger(
+            "Attack3"
+        );
+
+        animator.ResetTrigger(
+            "Hit"
+        );
+
+        animator.ResetTrigger(
+            "ArmorBreak"
+        );
 
         bool armorBroken =
-            animator.GetBool("ArmorBroken");
+            animator.GetBool(
+                "ArmorBroken"
+            );
 
-        if (armorBroken)
+        // =========================================
+        // 갑옷 있음
+        // → 공격 1
+        // =========================================
+
+        if (!armorBroken)
         {
-            int attackIndex =
-                Random.Range(0, 2);
+            animator.SetTrigger(
+                "Attack"
+            );
 
-            if (attackIndex == 0)
-            {
-                animator.SetTrigger("Attack");
-            }
-            else
-            {
-                animator.SetTrigger("Attack2");
-            }
+            return;
+        }
+
+        // =========================================
+        // 갑옷 없음
+        // → 공격 2 / 공격 3 랜덤
+        // =========================================
+
+        int attackIndex =
+            Random.Range(
+                0,
+                2
+            );
+
+        if (attackIndex == 0)
+        {
+            animator.SetTrigger(
+                "Attack2"
+            );
         }
         else
         {
-            animator.SetTrigger("Attack");
+            animator.SetTrigger(
+                "Attack3"
+            );
         }
     }
 
     // =========================================================
+    // Attack Audio
+    // =========================================================
+
     // Attack Animation Event
+    public void PlayarmorAttackSound()
+    {
+        if (audioSource == null ||
+            armorAttackSound == null)
+        {
+            return;
+        }
+
+        audioSource.PlayOneShot(
+            armorAttackSound
+        );
+    }
+
+    // Attack2 Animation Event
+    public void PlayUnAromrAttackSound1()
+    {
+        if (audioSource == null ||
+            UnAromrAttackSound1 == null)
+        {
+            return;
+        }
+
+        audioSource.PlayOneShot(
+            UnAromrAttackSound1
+        );
+    }
+
+    // Attack3 Animation Event
+    public void PlayUnAromrAttackSound2()
+    {
+        if (audioSource == null ||
+            UnAromrAttackSound2 == null)
+        {
+            return;
+        }
+
+        audioSource.PlayOneShot(
+            UnAromrAttackSound2
+        );
+    }
+
+    // =========================================================
+    // Attack Hitbox
     // =========================================================
 
     public void EnableAttackHitbox()
     {
-        if (attackHitbox != null)
-        {
-            attackHitbox.SetActive(true);
-        }
+        if (isDead)
+            return;
+
+        if (isHitPlaying())
+            return;
+
+        if (attackHitbox == null)
+            return;
+
+        attackHitbox.SetActive(
+            true
+        );
     }
 
     public void DisableAttackHitbox()
     {
-        if (attackHitbox != null)
-        {
-            attackHitbox.SetActive(false);
-        }
+        if (attackHitbox == null)
+            return;
+
+        attackHitbox.SetActive(
+            false
+        );
     }
 
     public void EndAttack()
     {
-        if (currentAction != ActionType.Attack &&
+        if (currentAction !=
+            ActionType.Attack &&
             !isActionLocked)
         {
             return;
@@ -396,7 +556,8 @@ public class BossController : MonoBehaviour
 
         DisableAttackHitbox();
 
-        isActionLocked = false;
+        isActionLocked =
+            false;
 
         currentAction =
             ActionType.None;
@@ -405,7 +566,133 @@ public class BossController : MonoBehaviour
 
         ReturnToIdle();
 
-        Debug.Log("Boss Attack 종료");
+        Debug.Log(
+            "Boss Attack 종료"
+        );
+    }
+
+    // =========================================================
+    // Hit
+    // =========================================================
+
+    public void OnHit()
+    {
+        if (isDead)
+            return;
+
+        DisableAttackHitbox();
+
+        isActionLocked =
+            true;
+
+        currentAction =
+            ActionType.Hit;
+
+        actionTimer =
+            hitFailsafeTime;
+
+        StopHorizontalMovement();
+
+        if (animator != null)
+        {
+            animator.ResetTrigger(
+                "Attack"
+            );
+
+            animator.ResetTrigger(
+                "Attack2"
+            );
+
+            animator.ResetTrigger(
+                "Attack3"
+            );
+
+            animator.ResetTrigger(
+                "ArmorBreak"
+            );
+
+            animator.SetTrigger(
+                "Hit"
+            );
+        }
+    }
+
+    public void EndHit()
+    {
+        if (isDead)
+            return;
+
+        isActionLocked =
+            false;
+
+        currentAction =
+            ActionType.None;
+
+        actionTimer = 0f;
+
+        ReturnToIdle();
+    }
+
+    // =========================================================
+    // Armor Break
+    // =========================================================
+
+    public void OnArmorBreak()
+    {
+        if (isDead)
+            return;
+
+        DisableAttackHitbox();
+
+        isActionLocked =
+            true;
+
+        currentAction =
+            ActionType.ArmorBreak;
+
+        actionTimer =
+            armorBreakFailsafeTime;
+
+        StopHorizontalMovement();
+
+        if (animator != null)
+        {
+            animator.ResetTrigger(
+                "Attack"
+            );
+
+            animator.ResetTrigger(
+                "Attack2"
+            );
+
+            animator.ResetTrigger(
+                "Attack3"
+            );
+
+            animator.ResetTrigger(
+                "Hit"
+            );
+
+            animator.SetTrigger(
+                "ArmorBreak"
+            );
+        }
+    }
+
+    public void EndArmorBreak()
+    {
+        if (isDead)
+            return;
+
+        isActionLocked =
+            false;
+
+        currentAction =
+            ActionType.None;
+
+        actionTimer = 0f;
+
+        ReturnToIdle();
     }
 
     // =========================================================
@@ -420,7 +707,8 @@ public class BossController : MonoBehaviour
             return;
         }
 
-        actionTimer -= Time.deltaTime;
+        actionTimer -=
+            Time.deltaTime;
 
         if (actionTimer > 0f)
             return;
@@ -432,15 +720,21 @@ public class BossController : MonoBehaviour
         switch (currentAction)
         {
             case ActionType.Attack:
+
                 EndAttack();
+
                 break;
 
             case ActionType.Hit:
+
                 EndHit();
+
                 break;
 
             case ActionType.ArmorBreak:
+
                 EndArmorBreak();
+
                 break;
         }
     }
@@ -455,7 +749,9 @@ public class BossController : MonoBehaviour
             return;
 
         bool armorBroken =
-            animator.GetBool("ArmorBroken");
+            animator.GetBool(
+                "ArmorBroken"
+            );
 
         if (armorBroken)
         {
@@ -478,100 +774,6 @@ public class BossController : MonoBehaviour
     }
 
     // =========================================================
-    // Hit
-    // =========================================================
-
-    public void OnHit()
-    {
-        if (isDead)
-            return;
-
-        DisableAttackHitbox();
-
-        isActionLocked = true;
-
-        currentAction =
-            ActionType.Hit;
-
-        actionTimer =
-            hitFailsafeTime;
-
-        StopHorizontalMovement();
-
-        if (animator != null)
-        {
-            animator.ResetTrigger("Attack");
-            animator.ResetTrigger("Attack2");
-            animator.ResetTrigger("ArmorBreak");
-
-            animator.SetTrigger("Hit");
-        }
-    }
-
-    public void EndHit()
-    {
-        if (isDead)
-            return;
-
-        isActionLocked = false;
-
-        currentAction =
-            ActionType.None;
-
-        actionTimer = 0f;
-
-        ReturnToIdle();
-    }
-
-    // =========================================================
-    // Armor Break
-    // =========================================================
-
-    public void OnArmorBreak()
-    {
-        if (isDead)
-            return;
-
-        DisableAttackHitbox();
-
-        isActionLocked = true;
-
-        currentAction =
-            ActionType.ArmorBreak;
-
-        actionTimer =
-            armorBreakFailsafeTime;
-
-        StopHorizontalMovement();
-
-        if (animator != null)
-        {
-            animator.ResetTrigger("Attack");
-            animator.ResetTrigger("Attack2");
-            animator.ResetTrigger("Hit");
-
-            animator.SetTrigger(
-                "ArmorBreak"
-            );
-        }
-    }
-
-    public void EndArmorBreak()
-    {
-        if (isDead)
-            return;
-
-        isActionLocked = false;
-
-        currentAction =
-            ActionType.None;
-
-        actionTimer = 0f;
-
-        ReturnToIdle();
-    }
-
-    // =========================================================
     // Death
     // =========================================================
 
@@ -584,58 +786,96 @@ public class BossController : MonoBehaviour
 
         DisableAttackHitbox();
 
-        isActionLocked = false;
+        isActionLocked =
+            false;
 
         currentAction =
             ActionType.None;
 
         actionTimer = 0f;
 
-        // 보스가 죽어도 현재 위치 유지
-        fixedY = transform.position.y;
+        fixedY =
+            transform.position.y;
 
         if (rb != null)
         {
-            rb.linearVelocity = Vector2.zero;
+            rb.linearVelocity =
+                Vector2.zero;
 
             rb.bodyType =
                 RigidbodyType2D.Kinematic;
 
-            rb.gravityScale = 0f;
+            rb.gravityScale =
+                0f;
 
             rb.constraints =
                 RigidbodyConstraints2D.FreezePositionY |
                 RigidbodyConstraints2D.FreezeRotation;
         }
 
-        // 몸 충돌만 제거
         if (bodyCollider != null)
         {
-            bodyCollider.enabled = false;
+            bodyCollider.enabled =
+                false;
         }
 
         if (animator != null)
         {
-            animator.ResetTrigger("Attack");
-            animator.ResetTrigger("Attack2");
-            animator.ResetTrigger("Hit");
-            animator.ResetTrigger("ArmorBreak");
+            animator.ResetTrigger(
+                "Attack"
+            );
 
-            animator.SetBool("Run", false);
+            animator.ResetTrigger(
+                "Attack2"
+            );
 
-            animator.SetTrigger("Death");
+            animator.ResetTrigger(
+                "Attack3"
+            );
+
+            animator.ResetTrigger(
+                "Hit"
+            );
+
+            animator.ResetTrigger(
+                "ArmorBreak"
+            );
+
+            animator.SetBool(
+                "Run",
+                false
+            );
+
+            animator.SetTrigger(
+                "Death"
+            );
         }
 
-        Debug.Log("Boss Death 시작");
+        Debug.Log(
+            "Boss Death 시작"
+        );
     }
 
-    // Animation Event
+    // =========================================================
+    // Death Animation Event
+    // =========================================================
+
     public void FinishDeath()
     {
         if (BossRoomManager.Instance != null)
         {
             BossRoomManager.Instance.UnlockExit();
         }
+    }
+
+    // =========================================================
+    // Helper
+    // =========================================================
+
+    private bool isHitPlaying()
+    {
+        return currentAction ==
+            ActionType.Hit;
     }
 
     // =========================================================
@@ -650,5 +890,28 @@ public class BossController : MonoBehaviour
     public bool IsActionLocked()
     {
         return isActionLocked;
+    }
+
+    // =========================================================
+    // Gizmos
+    // =========================================================
+
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color =
+            Color.yellow;
+
+        Gizmos.DrawWireSphere(
+            transform.position,
+            detectionRange
+        );
+
+        Gizmos.color =
+            Color.red;
+
+        Gizmos.DrawWireSphere(
+            transform.position,
+            attackRange
+        );
     }
 }

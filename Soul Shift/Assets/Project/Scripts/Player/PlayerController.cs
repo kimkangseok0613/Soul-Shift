@@ -33,6 +33,11 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private bool useScreenBounds = true;
     [SerializeField] private float screenPadding = 0f;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip jumpSound;
+    [SerializeField] private AudioClip dashSound;
+
     private Rigidbody2D rb;
     private Animator animator;
     private Collider2D playerCollider;
@@ -58,6 +63,11 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         playerCollider = GetComponent<Collider2D>();
+
+        if (audioSource == null)
+        {
+            audioSource = GetComponent<AudioSource>();
+        }
 
         baseScale = transform.localScale;
 
@@ -249,9 +259,6 @@ public class PlayerController : MonoBehaviour
                 dashCooldownTimer = 0f;
             }
         }
-
-        // dashTimer는 여기서 감소하지 않는다.
-        // 실제 대쉬 시간은 FixedUpdate -> DashMove()에서 관리한다.
     }
 
     private void Move()
@@ -276,6 +283,8 @@ public class PlayerController : MonoBehaviour
 
             jumpBufferCounter = 0f;
             coyoteCounter = 0f;
+
+            PlayJumpSound();
         }
     }
 
@@ -303,6 +312,8 @@ public class PlayerController : MonoBehaviour
         jumpBufferCounter = 0f;
         moveInput = 0f;
 
+        PlayDashSound();
+
         if (animator != null)
         {
             animator.SetBool(
@@ -311,7 +322,7 @@ public class PlayerController : MonoBehaviour
             );
         }
 
-        // 대쉬 중에는 적과 겹칠 수 있도록 충돌 무시
+        // 대시 중에는 적과 겹칠 수 있도록 충돌 무시
         SetEnemyCollision(false);
 
         rb.linearVelocity =
@@ -363,9 +374,6 @@ public class PlayerController : MonoBehaviour
         if (!isDashing)
             return;
 
-        // =========================================
-        // 대쉬 종료 전에 적과 겹쳐 있는지 확인
-        // =========================================
         ResolveEnemyOverlapAfterDash();
 
         isDashing = false;
@@ -376,7 +384,6 @@ public class PlayerController : MonoBehaviour
                 rb.linearVelocity.y
             );
 
-        // 겹침을 해결한 뒤 충돌 복구
         SetEnemyCollision(true);
 
         if (animator != null)
@@ -388,9 +395,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // =========================================
-    // 대쉬 종료 시 적과 겹침 방지
-    // =========================================
     private void ResolveEnemyOverlapAfterDash()
     {
         if (playerCollider == null)
@@ -405,8 +409,6 @@ public class PlayerController : MonoBehaviour
         int enemyLayerMask =
             1 << enemyLayer;
 
-        // 여러 적과 동시에 겹치는 경우를 대비해서
-        // 최대 몇 번까지 반복해서 분리
         for (int i = 0; i < 4; i++)
         {
             Collider2D[] enemies =
@@ -441,8 +443,6 @@ public class PlayerController : MonoBehaviour
 
                 float moveX;
 
-                // 오른쪽으로 대쉬했다면
-                // 적의 오른쪽으로 분리
                 if (dashDirection.x > 0f)
                 {
                     moveX =
@@ -452,8 +452,6 @@ public class PlayerController : MonoBehaviour
                 }
                 else
                 {
-                    // 왼쪽으로 대쉬했다면
-                    // 적의 왼쪽으로 분리
                     moveX =
                         enemyBounds.min.x -
                         playerBounds.max.x -
@@ -466,7 +464,6 @@ public class PlayerController : MonoBehaviour
                         rb.position.y
                     );
 
-                // Collider bounds 즉시 갱신
                 Physics2D.SyncTransforms();
             }
 
@@ -554,18 +551,10 @@ public class PlayerController : MonoBehaviour
             );
     }
 
-    // =========================================================
-    // 피격 경직 상태
-    // =========================================================
-
     public bool IsHitStunned()
     {
         return hitStunTimer > 0f;
     }
-
-    // =========================================================
-    // 이동속도 강화
-    // =========================================================
 
     public float GetMoveSpeed()
     {
@@ -592,10 +581,6 @@ public class PlayerController : MonoBehaviour
             baseMoveSpeed +
             upgradeLevel * speedPerLevel;
     }
-
-    // =========================================================
-    // 대쉬 상태
-    // =========================================================
 
     public bool IsDashing()
     {
@@ -735,6 +720,28 @@ public class PlayerController : MonoBehaviour
     private void OnDisable()
     {
         SetEnemyCollision(true);
+    }
+
+    private void PlayJumpSound()
+    {
+        if (audioSource == null)
+            return;
+
+        if (jumpSound == null)
+            return;
+
+        audioSource.PlayOneShot(jumpSound);
+    }
+
+    private void PlayDashSound()
+    {
+        if (audioSource == null)
+            return;
+
+        if (dashSound == null)
+            return;
+
+        audioSource.PlayOneShot(dashSound);
     }
 
     private void OnDrawGizmosSelected()

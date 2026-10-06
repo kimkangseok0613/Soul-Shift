@@ -27,6 +27,10 @@ public class EnemyController : MonoBehaviour
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 2f;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip attackSound;
+
     private Rigidbody2D rb;
     private Animator animator;
     private EnemyHealth enemyHealth;
@@ -49,6 +53,11 @@ public class EnemyController : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         enemyHealth = GetComponent<EnemyHealth>();
+
+        if (audioSource == null)
+        {
+            audioSource = GetComponent<AudioSource>();
+        }
 
         baseScale = transform.localScale;
         originalConstraints = rb.constraints;
@@ -266,6 +275,22 @@ public class EnemyController : MonoBehaviour
         DisableAttackHitbox();
 
         animator.SetTrigger("Attack");
+    }
+
+    // =========================================================
+    // Attack Sound
+    // Animation Event에서 호출
+    // =========================================================
+
+    public void PlayAttackSound()
+    {
+        if (audioSource == null)
+            return;
+
+        if (attackSound == null)
+            return;
+
+        audioSource.PlayOneShot(attackSound);
     }
 
     private void LockPositionX()
