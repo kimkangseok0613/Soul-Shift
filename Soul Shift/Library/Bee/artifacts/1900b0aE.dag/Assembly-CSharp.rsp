@@ -135,6 +135,7 @@
 -define:ENABLE_TILEMAP
 -define:ENABLE_TIMELINE
 -define:ENABLE_INPUT_SYSTEM
+-define:ENABLE_LEGACY_INPUT_MANAGER
 -define:TEXTCORE_FONT_ENGINE_1_5_OR_NEWER
 -define:TEXTCORE_TEXT_ENGINE_1_5_OR_NEWER
 -define:TEXTCORE_FONT_ENGINE_1_6_OR_NEWER
@@ -481,9 +482,13 @@
 "Assets/Project/Scripts/Enemy/BossHealth.cs"
 "Assets/Project/Scripts/Enemy/EnemyController.cs"
 "Assets/Project/Scripts/Enemy/EnemyHealth.cs"
+"Assets/Project/Scripts/Enemy/SlimeAnimationEvents.cs"
+"Assets/Project/Scripts/Enemy/SlimeBossController.cs"
+"Assets/Project/Scripts/Enemy/SlimeBossHealth.cs"
 "Assets/Project/Scripts/Item/GemController.cs"
 "Assets/Project/Scripts/Item/GemPickup.cs"
 "Assets/Project/Scripts/Managers/BossRoomManager.cs"
+"Assets/Project/Scripts/Managers/BossRoomManager2.cs"
 "Assets/Project/Scripts/Managers/ChestPersistence.cs"
 "Assets/Project/Scripts/Managers/EnemyClearManager.cs"
 "Assets/Project/Scripts/Managers/EnemyPersistence.cs"

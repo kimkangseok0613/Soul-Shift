@@ -12,19 +12,34 @@ EditorBuildSettings:
     path: Assets/Project/Scenes/Tutorial.unity
     guid: 8be638437f8a44469acde151ce964669
   - enabled: 1
-    path: Assets/Project/Scenes/Map1.unity
+    path: Assets/Project/Scenes/Map2-1.unity
     guid: b9df0e410fa64374a98ce50cafdf61b6
   - enabled: 1
-    path: Assets/Project/Scenes/Map2.unity
+    path: Assets/Project/Scenes/Map2-2.unity
     guid: 870269918f3718748ac9061e98313538
   - enabled: 1
-    path: Assets/Project/Scenes/map3.unity
+    path: Assets/Project/Scenes/map2-3.unity
     guid: bf123e390f5983e4b9a34a326d6468bc
   - enabled: 1
-    path: Assets/Project/Scenes/Shop.unity
+    path: Assets/Project/Scenes/Map2-Shop.unity
     guid: a604ef0a13898084f8ae93dca29db858
   - enabled: 1
-    path: Assets/Project/Scenes/Boss.unity
+    path: Assets/Project/Scenes/Map2-Boss.unity
+    guid: 75801794f95d7e6488355e15a5e9796e
+  - enabled: 1
+    path: Assets/Project/Scenes/Map1-1.unity
+    guid: 82d2f9eb00022f044b98ce6ba5159e14
+  - enabled: 1
+    path: Assets/Project/Scenes/Map1-2.unity
+    guid: f76d4f8e5861e334bbdab44403a3ad2d
+  - enabled: 1
+    path: Assets/Project/Scenes/Map1-3.unity
+    guid: 2ebf8576febaa34419fb9f66d1e23415
+  - enabled: 1
+    path: Assets/Project/Scenes/Map1-Shop.unity
+    guid: 7334b04c8c5b45845aac952472d9c1e3
+  - enabled: 1
+    path: Assets/Project/Scenes/Map1-Boss.unity
     guid: 651f2c13937858b48a9ee815fa7efb60
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}

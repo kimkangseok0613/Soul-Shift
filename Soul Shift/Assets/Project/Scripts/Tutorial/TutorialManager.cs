@@ -9,7 +9,7 @@ public class TutorialManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI tutorialText;
 
     [Header("Next Scene")]
-    [SerializeField] private string nextSceneName = "Map1";
+    [SerializeField] private string nextSceneName = "Map1-1";
     [SerializeField] private float completeDelay = 1.2f;
 
     private bool isCompleting;

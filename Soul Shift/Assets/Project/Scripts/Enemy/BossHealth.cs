@@ -3,6 +3,9 @@ using UnityEngine;
 
 public class BossHealth : MonoBehaviour
 {
+    [Header("Boss Save ID")]
+    [SerializeField] private string bossId = "Map1_Boss";
+
     [Header("HP")]
     [SerializeField] private int maxHp = 100;
 
@@ -26,13 +29,12 @@ public class BossHealth : MonoBehaviour
 
     private Coroutine hitFlashCoroutine;
 
-    private const string BossDeadKey =
-        "BossDefeated";
+    private string BossDeadKey =>
+        "BossDefeated_" + bossId;
 
     private void Awake()
     {
-        animator =
-            GetComponent<Animator>();
+        animator = GetComponent<Animator>();
 
         bossController =
             GetComponent<BossController>();
@@ -40,7 +42,6 @@ public class BossHealth : MonoBehaviour
         spriteRenderer =
             GetComponent<SpriteRenderer>();
 
-        // BossHealth가 부모에 있고
         // SpriteRenderer가 자식에 있는 경우
         if (spriteRenderer == null)
         {
@@ -54,24 +55,16 @@ public class BossHealth : MonoBehaviour
                 GetComponent<AudioSource>();
         }
 
-        currentHp =
-            maxHp;
-
-        armorBroken =
-            false;
-
-        isDead =
-            false;
+        currentHp = maxHp;
+        armorBroken = false;
+        isDead = false;
 
         // --------------------------------
-        // 이전에 보스를 처치했는지 확인
+        // 해당 보스의 처치 여부 확인
         // --------------------------------
-        if (PlayerPrefs.GetInt(
-                BossDeadKey,
-                0) == 1)
+        if (PlayerPrefs.GetInt(BossDeadKey, 0) == 1)
         {
             isDead = true;
-
             currentHp = 0;
 
             if (bossController != null)
@@ -97,7 +90,7 @@ public class BossHealth : MonoBehaviour
     }
 
     // =========================================================
-    // Damage
+    // Take Damage
     // =========================================================
 
     public void TakeDamage(int damage)
@@ -110,19 +103,11 @@ public class BossHealth : MonoBehaviour
 
         currentHp -= damage;
 
-        currentHp =
-            Mathf.Max(
-                currentHp,
-                0
-            );
+        currentHp = Mathf.Max(currentHp, 0);
 
         Debug.Log(
-            $"Boss HP : {currentHp} / {maxHp}"
+            $"{bossId} HP : {currentHp} / {maxHp}"
         );
-
-        // =====================================================
-        // 사망하지 않았다면 피격 처리
-        // =====================================================
 
         if (currentHp > 0)
         {
@@ -132,32 +117,19 @@ public class BossHealth : MonoBehaviour
             PlaySound(hitSound);
         }
 
-        // =====================================================
-        // Death
-        // =====================================================
-
         if (currentHp <= 0)
         {
             Die();
             return;
         }
 
-        // =====================================================
-        // Armor Break
-        // HP 50% 이하
-        // =====================================================
-
+        // HP가 50% 이하가 되면 갑옷 파괴
         if (!armorBroken &&
             currentHp <= maxHp * 0.5f)
         {
             BreakArmor();
-
             return;
         }
-
-        // =====================================================
-        // Hit
-        // =====================================================
 
         if (bossController != null)
         {
@@ -165,9 +137,7 @@ public class BossHealth : MonoBehaviour
         }
         else if (animator != null)
         {
-            animator.SetTrigger(
-                "Hit"
-            );
+            animator.SetTrigger("Hit");
         }
     }
 
@@ -182,18 +152,13 @@ public class BossHealth : MonoBehaviour
 
         if (hitFlashCoroutine != null)
         {
-            StopCoroutine(
-                hitFlashCoroutine
-            );
+            StopCoroutine(hitFlashCoroutine);
 
-            spriteRenderer.color =
-                Color.white;
+            spriteRenderer.color = Color.white;
         }
 
         hitFlashCoroutine =
-            StartCoroutine(
-                HitFlash()
-            );
+            StartCoroutine(HitFlash());
     }
 
     private IEnumerator HitFlash()
@@ -201,21 +166,18 @@ public class BossHealth : MonoBehaviour
         Color originalColor =
             spriteRenderer.color;
 
-        spriteRenderer.color =
-            Color.red;
+        spriteRenderer.color = Color.red;
 
         yield return new WaitForSeconds(
             hitFlashDuration
         );
 
-        if (!isDead)
+        if (!isDead && spriteRenderer != null)
         {
-            spriteRenderer.color =
-                originalColor;
+            spriteRenderer.color = originalColor;
         }
 
-        hitFlashCoroutine =
-            null;
+        hitFlashCoroutine = null;
     }
 
     // =========================================================
@@ -227,19 +189,12 @@ public class BossHealth : MonoBehaviour
         if (armorBroken)
             return;
 
-        armorBroken =
-            true;
+        armorBroken = true;
 
-        Debug.Log(
-            "Boss Armor Break!"
-        );
+        Debug.Log($"{bossId} Armor Break!");
 
-        // 갑옷 파괴 사운드
-        PlaySound(
-            armorBreakSound
-        );
+        PlaySound(armorBreakSound);
 
-        // Animator에 갑옷 파괴 상태 전달
         if (animator != null)
         {
             animator.SetBool(
@@ -248,17 +203,13 @@ public class BossHealth : MonoBehaviour
             );
         }
 
-        // BossController에서
-        // ArmorBreak 애니메이션 실행
         if (bossController != null)
         {
             bossController.OnArmorBreak();
         }
         else if (animator != null)
         {
-            animator.SetTrigger(
-                "ArmorBreak"
-            );
+            animator.SetTrigger("ArmorBreak");
         }
     }
 
@@ -271,66 +222,43 @@ public class BossHealth : MonoBehaviour
         if (isDead)
             return;
 
-        isDead =
-            true;
+        isDead = true;
 
-        // 피격 플래시 종료
         if (hitFlashCoroutine != null)
         {
-            StopCoroutine(
-                hitFlashCoroutine
-            );
-
-            hitFlashCoroutine =
-                null;
+            StopCoroutine(hitFlashCoroutine);
+            hitFlashCoroutine = null;
         }
 
         if (spriteRenderer != null)
         {
-            spriteRenderer.color =
-                Color.white;
+            spriteRenderer.color = Color.white;
         }
 
-        Debug.Log(
-            "Boss HP 0"
-        );
+        Debug.Log($"{bossId} HP 0 - Boss Defeated");
 
-        // =====================================================
-        // 보스 처치 상태 저장
-        // =====================================================
-
-        PlayerPrefs.SetInt(
-            BossDeadKey,
-            1
-        );
-
+        // --------------------------------
+        // 현재 보스만 처치 상태로 저장
+        // --------------------------------
+        PlayerPrefs.SetInt(BossDeadKey, 1);
         PlayerPrefs.Save();
 
-        // =====================================================
         // 사망 사운드
-        // =====================================================
+        PlaySound(deathSound);
 
-        PlaySound(
-            deathSound
-        );
-
-        // =====================================================
-        // 보스 사망 처리
-        // =====================================================
-
+        // 보스 BGM에서 일반 BGM으로 전환
         if (BGMManager.Instance != null)
         {
             BGMManager.Instance.BossDefeated();
         }
+
         if (bossController != null)
         {
             bossController.OnDeath();
         }
         else if (animator != null)
         {
-            animator.SetTrigger(
-                "Death"
-            );
+            animator.SetTrigger("Death");
         }
     }
 
@@ -338,9 +266,7 @@ public class BossHealth : MonoBehaviour
     // Audio
     // =========================================================
 
-    private void PlaySound(
-        AudioClip clip
-    )
+    private void PlaySound(AudioClip clip)
     {
         if (audioSource == null)
             return;
@@ -348,9 +274,7 @@ public class BossHealth : MonoBehaviour
         if (clip == null)
             return;
 
-        audioSource.PlayOneShot(
-            clip
-        );
+        audioSource.PlayOneShot(clip);
     }
 
     // =========================================================
@@ -372,9 +296,7 @@ public class BossHealth : MonoBehaviour
         if (maxHp <= 0)
             return 0f;
 
-        return
-            (float)currentHp /
-            maxHp;
+        return (float)currentHp / maxHp;
     }
 
     public bool IsArmorBroken()

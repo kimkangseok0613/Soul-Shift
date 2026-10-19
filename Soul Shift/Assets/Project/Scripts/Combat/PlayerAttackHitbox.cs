@@ -13,6 +13,7 @@ public class PlayerAttackHitbox : MonoBehaviour
 
     private readonly HashSet<EnemyHealth> hitEnemies = new();
     private readonly HashSet<BossHealth> hitBosses = new();
+    private readonly HashSet<SlimeBossHealth> hitSlimeBosses = new();
     private readonly HashSet<BreakableChest> hitChests = new();
 
     private void Awake()
@@ -28,6 +29,7 @@ public class PlayerAttackHitbox : MonoBehaviour
 
         hitEnemies.Clear();
         hitBosses.Clear();
+        hitSlimeBosses.Clear();
         hitChests.Clear();
 
         DetectCurrentTargets();
@@ -36,6 +38,7 @@ public class PlayerAttackHitbox : MonoBehaviour
     // ========================================
     // 공격력 초기화
     // ========================================
+
     private void InitializeDamage()
     {
         if (isInitialized)
@@ -46,8 +49,9 @@ public class PlayerAttackHitbox : MonoBehaviour
     }
 
     // ========================================
-    // 현재 공격 범위 안의 적 / 보스 / 상자 확인
+    // 현재 공격 범위 안의 대상 확인
     // ========================================
+
     private void DetectCurrentTargets()
     {
         if (boxCollider == null)
@@ -69,6 +73,7 @@ public class PlayerAttackHitbox : MonoBehaviour
     // ========================================
     // 공격 범위에 새로 들어온 대상 확인
     // ========================================
+
     private void OnTriggerEnter2D(Collider2D other)
     {
         TryDamageTarget(other);
@@ -77,6 +82,7 @@ public class PlayerAttackHitbox : MonoBehaviour
     // ========================================
     // 적 / 보스 / 상자 공격
     // ========================================
+
     private void TryDamageTarget(Collider2D other)
     {
         if (other == null)
@@ -85,15 +91,14 @@ public class PlayerAttackHitbox : MonoBehaviour
         // --------------------------------
         // 일반 적
         // --------------------------------
+
         EnemyHealth enemy =
             other.GetComponentInParent<EnemyHealth>();
 
         if (enemy != null)
         {
-            if (!hitEnemies.Contains(enemy))
+            if (hitEnemies.Add(enemy))
             {
-                hitEnemies.Add(enemy);
-
                 enemy.TakeDamage(damage);
             }
 
@@ -101,18 +106,34 @@ public class PlayerAttackHitbox : MonoBehaviour
         }
 
         // --------------------------------
-        // 보스
+        // 골렘 보스
         // --------------------------------
+
         BossHealth boss =
             other.GetComponentInParent<BossHealth>();
 
         if (boss != null)
         {
-            if (!hitBosses.Contains(boss))
+            if (hitBosses.Add(boss))
             {
-                hitBosses.Add(boss);
-
                 boss.TakeDamage(damage);
+            }
+
+            return;
+        }
+
+        // --------------------------------
+        // 슬라임 보스
+        // --------------------------------
+
+        SlimeBossHealth slimeBoss =
+            other.GetComponentInParent<SlimeBossHealth>();
+
+        if (slimeBoss != null)
+        {
+            if (hitSlimeBosses.Add(slimeBoss))
+            {
+                slimeBoss.TakeDamage(damage);
             }
 
             return;
@@ -121,15 +142,14 @@ public class PlayerAttackHitbox : MonoBehaviour
         // --------------------------------
         // 상자
         // --------------------------------
+
         BreakableChest chest =
             other.GetComponentInParent<BreakableChest>();
 
         if (chest != null)
         {
-            if (!hitChests.Contains(chest))
+            if (hitChests.Add(chest))
             {
-                hitChests.Add(chest);
-
                 chest.TakeDamage(damage);
             }
         }
@@ -138,6 +158,7 @@ public class PlayerAttackHitbox : MonoBehaviour
     // ========================================
     // 공격력 반환
     // ========================================
+
     public int GetDamage()
     {
         InitializeDamage();
@@ -153,6 +174,7 @@ public class PlayerAttackHitbox : MonoBehaviour
     // ========================================
     // 공격력 강화 적용
     // ========================================
+
     public void SetUpgradeLevel(
         int upgradeLevel,
         int damagePerLevel
@@ -181,6 +203,7 @@ public class PlayerAttackHitbox : MonoBehaviour
     // ========================================
     // 공격 범위 표시
     // ========================================
+
     private void OnDrawGizmos()
     {
         BoxCollider2D box =

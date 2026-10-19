@@ -6,8 +6,12 @@ public class BossRoomManager : MonoBehaviour
 
     [Header("Boss Room Door")]
     [SerializeField] private GameObject leftDoor;
+    [SerializeField] private GameObject rightDoor;
 
-    private const string BossDeadKey = "BossDefeated";
+    [Header("Boss Save ID")]
+    [SerializeField] private string bossId = "Map1_GolemBoss";
+
+    private string BossDeadKey => "BossDefeated_" + bossId;
 
     private bool bossDefeated;
 
@@ -22,72 +26,60 @@ public class BossRoomManager : MonoBehaviour
         Instance = this;
 
         // 저장된 보스 처치 여부 확인
-        bossDefeated =
-            PlayerPrefs.GetInt(
-                BossDeadKey,
-                0
-            ) == 1;
+        bossDefeated = PlayerPrefs.GetInt(BossDeadKey, 0) == 1;
     }
 
     private void Start()
     {
-        // 이미 보스를 처치했다면
-        // 처음부터 왼쪽 문을 열어둔다.
+        UpdateDoors();
+
         if (bossDefeated)
         {
-            UnlockExit();
-
-            Debug.Log(
-                "Boss Room : 이미 보스 처치 완료 - 왼쪽 문 오픈"
-            );
-
-            return;
+            Debug.Log("Boss Room: 이미 보스 처치 완료 - 양쪽 문 비활성화");
         }
-
-        // 아직 보스를 잡지 않았다면 문 잠금
-        LockExit();
+        else
+        {
+            Debug.Log("Boss Room: 보스 생존 - 양쪽 문 활성화");
+        }
     }
 
-    // =========================================================
     // 문 잠금
-    // =========================================================
-
     public void LockExit()
     {
         bossDefeated = false;
+        UpdateDoors();
 
-        if (leftDoor != null)
-        {
-            leftDoor.SetActive(true);
-        }
-
-        Debug.Log(
-            "Boss Room : 보스 미처치 - 왼쪽 문 잠금"
-        );
+        Debug.Log("Boss Room: 보스 미처치 - 양쪽 문 활성화");
     }
 
-    // =========================================================
     // 보스 처치 후 문 열기
-    // =========================================================
-
     public void UnlockExit()
     {
         bossDefeated = true;
 
-        if (leftDoor != null)
-        {
-            leftDoor.SetActive(false);
-        }
+        PlayerPrefs.SetInt(BossDeadKey, 1);
+        PlayerPrefs.Save();
 
-        Debug.Log(
-            "Boss Room : 보스 처치 완료 - 왼쪽 문 개방"
-        );
+        UpdateDoors();
+
+        Debug.Log("Boss Room: 보스 처치 완료 - 양쪽 문 비활성화");
     }
 
-    // =========================================================
-    // 보스 처치 여부
-    // =========================================================
+    // 문 상태 갱신
+    private void UpdateDoors()
+    {
+        if (leftDoor != null)
+        {
+            leftDoor.SetActive(!bossDefeated);
+        }
 
+        if (rightDoor != null)
+        {
+            rightDoor.SetActive(!bossDefeated);
+        }
+    }
+
+    // 보스 처치 여부
     public bool IsBossDefeated()
     {
         return bossDefeated;

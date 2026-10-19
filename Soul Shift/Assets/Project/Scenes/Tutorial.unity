@@ -1722,7 +1722,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bd1ffa3fbfd3a1c47809153fbd129709, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SceneMove
-  targetSceneName: Map1
+  targetSceneName: Map1-1
   targetSpawnSide: 1
 --- !u!61 &1466131702
 BoxCollider2D:
@@ -2876,7 +2876,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TutorialManager
   tutorialText: {fileID: 1900000014}
-  nextSceneName: Map1
+  nextSceneName: Map1-1
   completeDelay: 1.2
 --- !u!1 &1900000004
 GameObject:
